@@ -1,0 +1,29 @@
+{
+  "name": "hardwarelib",
+  "version": "0.0.1",
+  "description": "hardware wallet support for bcoin",
+  "main": "src/hardware.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "bitcoin",
+    "ledger",
+    "trezor",
+    "nodejs"
+  ],
+  "author": "Mark Tyneway",
+  "license": "MIT",
+  "dependencies": {
+    "babel-runtime": "^6.26.0",
+    "bcfg": "^0.1.5",
+    "bclient": "^0.1.6",
+    "bcoin": "git+https://github.com/bcoin-org/bcoin.git",
+    "bmultisig": "git+https://github.com/bcoin-org/bmultisig.git",
+    "bledger": "git+https://github.com/bcoin-org/bledger.git",
+    "blgr": "^0.1.5",
+    "bmutex": "^0.1.5",
+    "bsert": "0.0.8",
+    "trezor.js": "^6.19.4"
+  }
+}
