@@ -230,7 +230,7 @@ class CLI {
   }
 
   destroy() {
-
+    await this.hardware.close();
   }
 
   /*
