@@ -19,9 +19,10 @@
     "bcfg": "^0.1.5",
     "bclient": "^0.1.6",
     "bcoin": "git+https://github.com/bcoin-org/bcoin.git",
-    "bmultisig": "git+https://github.com/bcoin-org/bmultisig.git",
     "bledger": "git+https://github.com/bcoin-org/bledger.git",
     "blgr": "^0.1.5",
+    "bmultisig": "git+https://github.com/bcoin-org/bmultisig.git",
+    "bmultisig-client": "0.0.2",
     "bmutex": "^0.1.5",
     "bsert": "0.0.8",
     "trezor.js": "^6.19.4"
