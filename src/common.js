@@ -1,3 +1,5 @@
+const assert = require('bsert');
+const hash256 = require('bcrypto/lib/hash256');
 
 // TODO: turn into proxy
 // with getting asserting
@@ -17,6 +19,96 @@ const vendors = {
   LEDGER: 'ledger',
   TREZOR: 'trezor',
 };
+
+
+class Path {
+  constructor() {
+    this.list = [];
+    this.str = '';
+
+    this.purpose = 44;
+    this.coin = 0;
+    this.account = null;
+  }
+
+  fromList(path) {
+    assert(Array.isArray(path));
+    assert(path.length < 256);
+
+    const str = ['m\''];
+
+    for (const [i, uint] of path) {
+      assert((uint >>> 0) === 0);
+      if ((uint & bip44.hardened) >>> 0)
+        str.push((uint ^ bip44.hardened) + '\'');
+      else
+        str.push(uint);
+    }
+
+    this.str = str.join('/');
+    this.list = path;
+
+    return this;
+  }
+
+  fromOptions(options) {
+    if (typeof options.purpose === 'number')
+      this.purpose = options.purpose;
+    if (typeof options.account === 'number')
+      this.account = options.account
+    if (options.network)
+      this.coin = bip44.coinType[options.network];
+    if (typeof options.coin === 'number')
+      this.coin = options.coin;
+
+    return this.fromString(`m'/${this.purpose}'/${this.coin}'/${this.account}'`);
+
+  }
+
+  fromIndex(index) {
+    this.account = index;
+    return this.fromString(`m'/${this.purpose}'/${this.coin}'/${this.account}'`);
+  }
+
+  toList() {
+    return this.list;
+  }
+
+  fromString(path) {
+    this.list = parsePath(path, true);
+    this.str = path;
+
+    return this;
+  }
+
+  toString() {
+    return this.str;
+  }
+
+  inspect() {
+    return `<Path bip44=${this.format()}>`
+  }
+
+  format() {
+    return this.str;
+  }
+
+  static fromString(path) {
+    return new this().fromString(path);
+  }
+
+  static fromList(path) {
+    return new this().fromList(path);
+  }
+
+  static fromIndex(index) {
+    return new this().fromIndex(index);
+  }
+
+  static fromOptions(options) {
+    return new this().fromOptions(options)
+  }
+}
 
 /*
  * Build Bitcoin bip44 path to
@@ -90,17 +182,21 @@ function parsePath(path, hard) {
     if (index >>> 0 !== index) throw new Error('Path index out of range.');
 
     if (hardened) {
-      index |= HARDENED;
+      index |= bip44.hardened;
       index >>>= 0;
     }
 
-    if (!hard && index & HARDENED)
+    if (!hard && index & bip44.hardened)
       throw new Error('Path index cannot be hardened.');
 
     result.push(index);
   }
 
   return result;
+}
+
+function hash(buf) {
+  return hash256.digest(buf);
 }
 
 function sleep(time) {
@@ -111,6 +207,8 @@ function sleep(time) {
 
 exports.bip44 = bip44;
 exports.vendors = vendors;
+exports.Path = Path;
+exports.hash = hash;
 exports.parsePath = parsePath;
 exports.HDAccountKeyPath = HDAccountKeyPath;
 exports.HDAccountKeyString = HDAccountKeyString;
