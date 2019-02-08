@@ -1,5 +1,6 @@
 const assert = require('bsert');
-const hash256 = require('bcrypto/lib/hash256');
+const blake2b = require('bcrypto/lib/blake2b');
+const {BufferMap} = require('buffer-map');
 
 // TODO: turn into proxy
 // with getting asserting
@@ -18,135 +19,38 @@ const bip44 = {
 const vendors = {
   LEDGER: 'ledger',
   TREZOR: 'trezor',
+  LOCAL: 'local',
 };
 
+const prepareTypes = {
+  STANDARD: 'standard',
+  MULTISIG: 'multisig',
+};
 
-class Path {
-  constructor() {
-    this.list = [];
-    this.str = '';
-
-    this.purpose = 44;
-    this.coin = 0;
-    this.account = null;
-  }
-
-  fromList(path) {
-    assert(Array.isArray(path));
-    assert(path.length < 256);
-
-    const str = ['m\''];
-
-    for (const [i, uint] of path) {
-      assert((uint >>> 0) === 0);
-      if ((uint & bip44.hardened) >>> 0)
-        str.push((uint ^ bip44.hardened) + '\'');
-      else
-        str.push(uint);
-    }
-
-    this.str = str.join('/');
-    this.list = path;
-
-    return this;
-  }
-
-  fromOptions(options) {
-    if (typeof options.purpose === 'number')
-      this.purpose = options.purpose;
-    if (typeof options.account === 'number')
-      this.account = options.account
-    if (options.network)
-      this.coin = bip44.coinType[options.network];
-    if (typeof options.coin === 'number')
-      this.coin = options.coin;
-
-    return this.fromString(`m'/${this.purpose}'/${this.coin}'/${this.account}'`);
-
-  }
-
-  fromIndex(index) {
-    this.account = index;
-    return this.fromString(`m'/${this.purpose}'/${this.coin}'/${this.account}'`);
-  }
-
-  toList() {
-    return this.list;
-  }
-
-  fromString(path) {
-    this.list = parsePath(path, true);
-    this.str = path;
-
-    return this;
-  }
-
-  toString() {
-    return this.str;
-  }
-
-  inspect() {
-    return `<Path bip44=${this.format()}>`
-  }
-
-  format() {
-    return this.str;
-  }
-
-  static fromString(path) {
-    return new this().fromString(path);
-  }
-
-  static fromList(path) {
-    return new this().fromList(path);
-  }
-
-  static fromIndex(index) {
-    return new this().fromIndex(index);
-  }
-
-  static fromOptions(options) {
-    return new this().fromOptions(options)
-  }
-}
-
-/*
- * Build Bitcoin bip44 path to
- * account extended public key,
- * represented as an array of integers
- *
- * TODO: turn into class
- *
- * @param index {Integer}
- * @param network {String}
- * @param options.hardened {Boolean}
- * @returns {[]Integer}
- */
-function HDAccountKeyPath(index, network, { hardened }) {
-  if (hardened)
-    index = (index | bip44.hardened) >>> 0;
-
-  const coinType = bip44.coinType[network];
-
-  return [
+// see satoshi labs slip 132 for reference
+// https://github.com/satoshilabs/slips/blob/master/slip-0132.md
+const HDVersionBytes = new BufferMap([
+  // xpub: m'/44'/0'
+  [Buffer.from('0488b21e', 'hex'), [
     (bip44.purpose | bip44.hardened) >>> 0,
-    (coinType | bip44.hardened) >>> 0,
-    index,
-  ];
-}
-
-function HDAccountKeyString(path) {
-  let result = ['m\''];
-  for (const uint of path) {
-    // BUG
-    if ((bip44.hardened & uint) === uint)
-      result.push((uint ^ bip44.hardened) + '\'');
-    else
-      result.push(uint);
-  }
-  return result.join('/');
-}
-
+    (bip44.coinType.main | bip44.hardened) >>> 0,
+  ]],
+  // tpub: m'/44'/1'
+  [Buffer.from('043587cf', 'hex'), [
+    (bip44.purpose | bip44.hardened) >>> 0,
+    (bip44.coinType.testnet | bip44.hardened) >>> 0,
+  ]],
+  // rpub: m'/44'/1'
+  [Buffer.from('eab4fa05', 'hex'), [
+    (bip44.purpose | bip44.hardened) >>> 0,
+    (bip44.coinType.regtest | bip44.hardened) >>> 0,
+  ]],
+  // spub: m'/44'/1'
+  [Buffer.from('0420bd3a', 'hex'), [
+    (bip44.purpose | bip44.hardened) >>> 0,
+    (bip44.coinType.simnet | bip44.hardened) >>> 0,
+  ]],
+]);
 
 /*
  *
@@ -196,7 +100,7 @@ function parsePath(path, hard) {
 }
 
 function hash(buf) {
-  return hash256.digest(buf);
+  return blake2b.digest(buf);
 }
 
 function sleep(time) {
@@ -207,10 +111,9 @@ function sleep(time) {
 
 exports.bip44 = bip44;
 exports.vendors = vendors;
-exports.Path = Path;
+exports.prepareTypes = prepareTypes;
 exports.hash = hash;
 exports.parsePath = parsePath;
-exports.HDAccountKeyPath = HDAccountKeyPath;
-exports.HDAccountKeyString = HDAccountKeyString;
 exports.sleep = sleep;
+exports.HDVersionBytes = HDVersionBytes;
 
