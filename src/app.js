@@ -14,7 +14,6 @@ async function prepareSign(options) {
   assert(options.tx, 'must pass tx');
   assert(options.tx.hex, 'must pass tx hex');
   assert(options.wallet, 'must pass wallet');
-  assert(options.account, 'must pass account');
 
   const tx = options.tx;
   const wallet = options.wallet;
@@ -29,9 +28,9 @@ async function prepareSign(options) {
     case 'multisig': {
 
       assert(options.paths, 'must pass paths');
-      assert(options.account, 'must pass account');
       assert(options.network, 'must pass network');
-      assert(options.purpose, 'must pass purpose');
+      assert(typeof options.purpose === 'number', 'must pass purpose');
+      assert(typeof options.account === 'number', 'must pass account');
 
       // paths from multisig backend look like
       // { branch, index, receive, change, nested }
