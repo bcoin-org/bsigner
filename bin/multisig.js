@@ -185,6 +185,7 @@ class CLI {
 
     if (this.config.has('approve-proposal')) {
 
+      // think about moving this into the function...
       const pid = this.config.uint('proposal-id');
       const ptx = await this.wallet.getProposalMTX(pid, {
         paths: true,
@@ -194,8 +195,6 @@ class CLI {
       if (!ptx.tx)
         throw new Error('no proposal to approve');
 
-      const hdpubkey = await this.hardware.getPublicKey(this.path.toList());
-      const cosignerToken = await generateToken(this.hardware, this.path);
 
       const mtx = MTX.fromRaw(Buffer.from(ptx.tx.hex, 'hex'));
 
@@ -210,20 +209,21 @@ class CLI {
 
       const scripts = ptx.scripts;
 
-      const signed = await this.hardware.signTransaction(mtx, {
+      const signature = await this.hardware.getSignature(mtx, {
         paths,
         inputTXs,
         coins,
         scripts,
+        enc: 'hex',
       });
 
-      if (!signed)
+      if (!signature)
         throw new Error('problem signing transaction');
 
-      const raw = signed.toRaw().toString('hex');
+      const cosignerToken = await generateToken(this.hardware, this.path);
 
       const wallet = this.client.wallet(this.config.str('wallet'), cosignerToken.toString('hex'));
-      const approval = await wallet.approveProposal(pid, [raw], this.config.bool('broadcase', true));
+      const approval = await wallet.approveProposal(pid, [signature], this.config.bool('broadcase', true));
 
       this.logger.info('proposal id: %s', proposal.id);
       this.logger.info('approvals: %s', approval.approvals.length);
@@ -232,7 +232,6 @@ class CLI {
 
     if (this.config.str('reject-proposal')) {
 
-      const hdpubkey = await this.hardware.getPublicKey(this.path.toList());
       const cosignerToken = await generateToken(this.hardware, this.path);
 
       const wallet = this.client.wallet(this.config.str('wallet'), cosignerToken.toString('hex'));
@@ -315,18 +314,18 @@ class CLI {
       }
     }
 
-    if (this.config.str('create-proposal')) {
+    if (this.config.has('create-proposal')) {
       if (!this.config.str('memo')) {
         msg += 'must pass memo\n';
         valid = false;
       }
 
-      if (!this.config.uint('value')) {
+      if (!this.config.has('value')) {
         msg += 'must pass value\n';
         valid = false;
       }
 
-      if (!this.config.str('recipient')) {
+      if (!this.config.has('recipient')) {
         msg += 'must pass recipient\n';
         valid = false;
       }
