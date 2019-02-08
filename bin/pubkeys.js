@@ -9,9 +9,7 @@ const blgr = require('blgr');
 
 const {Hardware} = require('../src/hardware');
 const {bip44} = require('../src/common');
-
-// TODO: is there a way to specifiy
-// required using bcfg?
+const {Path} = require('../src/path');
 
 /*
  * extract public keys and make wallets/accounts
@@ -27,18 +25,7 @@ class CLI {
   constructor() {
     // TODO: think about good alias usage
     this.config = new Config('hardwarelib', {
-      alias: {
-        'v': 'vendor',
-        'n': 'network',
-        'u': 'url',
-        'k': 'api-key',
-        's': 'ssl',
-        'h': 'httphost',
-        'p': 'httpport',
-        'w': 'wallet',
-        'a': 'account',
-        'h': 'help',
-      },
+      alias: {},
     });
 
     this.config.load({
@@ -46,70 +33,72 @@ class CLI {
       env: true,
     });
 
-    if (this.config.str('config'))
-      this.config.open(this.config.str('config'));
+    if (this.config.has('config'))
+      this.config.open(this.config.path('config'));
   }
 
   async open() {
-    const logger = new blgr(this.config.str('loglevel', 'debug'));
-    await logger.open();
+    this.logger = new blgr(this.config.str('loglevel', 'debug'));
+    await this.logger.open();
 
-    if (this.config.str('help', '')) {
-      logger.info(this.help())
-      process.exit(0)
+    if (this.config.has('help')) {
+      this.logger.info(this.help());
+      process.exit(0);
     }
 
-    const vendor = this.config.str('vendor');
-    if (!vendor)
-      throw new Error('must provide vendor');
+    const [valid, msg] = this.validateConfig();
+    if (!valid) {
+      this.logger.error(this.help(msg));
+      process.exit(1);
+    }
 
-    let network = this.config.str('network');
-    if (network)
-      network = Network.get(network);
-    else
-      throw new Error('must pass network');
+    const network = Network.get(this.config.str('network'));
 
-    const hardware = Hardware.fromOptions({
-      vendor: vendor,
-      retry: this.config.bool('retry', true),
-      network: network,
-      logger: logger,
+    this.client = new WalletClient({
+      network: network.type,
+      port: network.walletPort,
+      apiKey: this.config.str('api-key'),
     });
 
-    // give access to destroy method
-    this.hardware = hardware;
-    await hardware.initialize();
+    this.wallet = this.client.wallet(this.config.str('wallet'), this.config.str('token'));
 
-    let path = this.config.str('path');
+    this.hardware = Hardware.fromOptions({
+      vendor: this.config.str('vendor'),
+      retry: this.config.bool('retry', true),
+      network: network.type,
+      logger: this.logger,
+    });
 
-    if (!path) {
-      const index = this.config.uint('index');
+    await this.hardware.initialize();
 
-      if (typeof index !== 'number')
-        throw new Error('must provide index when no path provided');
-
-      if (!network)
-        throw new Error('must provide network when no path provided');
-
-      const coinType = bip44.coinType[network.type];
-      logger.info('assuming bip44, using %s\'/%s\'/%s\'', bip44.purpose, coinType, index)
-
-      path = [
-        (bip44.purpose | bip44.hardened) >>> 0,
-        (coinType | bip44.hardened) >>> 0,
-        (index | bip44.hardened) >>> 0,
-      ];
+    if (this.config.has('path'))
+      this.path = Path.fromString(this.config.str('path'));
+    else {
+      // auto increment account creation
+      if (this.config.has('create-account') && !this.config.has('index')) {
+        const info = await this.wallet.getInfo();
+        if (!info)
+          throw new Error('problem fetching wallet info');
+        this.config.set('index', info.accountDepth);
+      }
+      this.path = Path.fromOptions({
+        network: network.type,
+        purpose: this.config.uint('purpose', 44),
+        account: this.config.uint('index', 0),
+        // allow for custom coin paths
+        coin: this.config.uint('coin'),
+      });
     }
 
-    const hdpubkey = await hardware.getPublicKey(path);
+    this.logger.info('using path: %s', this.path);
+
+    const hdpubkey = await this.hardware.getPublicKey(this.path);
 
     if (!hdpubkey)
       throw new Error('problem getting public key');
 
-    if (network)
-      logger.info('extended public key:\n       %s', hdpubkey.xpubkey(network.type));
-
-    logger.info('hex public key:\n       %s', hdpubkey.publicKey.toString('hex'));
+    this.logger.info('extended public key:\n       %s', hdpubkey.xpubkey(network.type));
+    this.logger.info('hex public key:\n       %s', hdpubkey.publicKey.toString('hex'));
 
     {
       const receivehdpubkey = hdpubkey.derive(0).derive(0);
@@ -119,74 +108,34 @@ class CLI {
       let legacy = legacyKeyring.getAddress('base58', network.type);
       let segwit = segwitKeyring.getAddress('string', network.type);
 
-      logger.info('legacy receive address:\n       %s', legacy);
-      logger.info('segwit receive address:\n       %s', segwit);
+      this.logger.info('legacy receive address:\n       %s', legacy);
+      this.logger.info('segwit receive address:\n       %s', segwit);
     }
 
-    if (this.config.bool('create-wallet', false)) {
+    if (this.config.has('create-wallet')) {
       const wallet = this.config.str('wallet');
 
-      if (!wallet)
-        throw new Error('must provide wallet name when creating wallet');
-
-      // use network to get ports
-      if (!network)
-        throw new Error('must provide network when creating wallet');
-
-      const apiKey = this.config.str('api-key')
-      if (!apiKey)
-        throw new Error('must pass api key');
-
-      const client = new WalletClient({
-        network: network.type,
-        port: network.walletPort,
-        apiKey: apiKey,
-      })
-
-      const witness = this.config.bool('segwit', false);
-
-      if (witness)
-        logger.info('creating segwit wallet');
-
-      const response = await client.createWallet(wallet, {
-        witness: witness,
+      const response = await this.client.createWallet(wallet, {
+        witness: this.config.bool('witness', false),
         accountKey: hdpubkey.xpubkey(network.type),
         watchOnly: true,
       });
 
-      const receivehdpubkey = hdpubkey.derive(0).derive(0);
-      const keyring = KeyRing.fromPublic(receivehdpubkey.publicKey);
-
-      logger.info('success: created wallet %s', response.id);
-      logger.info('token: %s', response.token);
+      this.logger.info('success: created wallet %s', response.id);
+      this.logger.info('token: %s', response.token);
     }
 
-    if (this.config.bool('create-account', false)) {
-      const wallet = this.config.str('wallet');
+    if (this.config.has('create-account')) {
       const account = this.config.str('account');
 
-      if (!wallet || !account)
-        throw new Error('must provide wallet and account when creating account');
-
-      const client = new WalletClient({
-        network: network.type,
-        port: network.walletPort,
-        apiKey: this.config.str('api-key'),
-      });
-
-      let token = this.config.str('token');
-      if (!token)
-        throw new Error('need wallet token to create account');
-
-      const response = await client.createAccount(wallet, account, {
+      const response = await this.wallet.createAccount(account, {
         witness: this.config.bool('witness', false),
-        token: token,
+        token: this.config.str('token'),
         accountKey: hdpubkey.xpubkey(network.type),
         watchOnly: true,
       });
 
-      logger.info('success: created account %s in wallet %s', response.name, wallet);
-      logger.info('receive address: %s', response.receiveAddress);
+      this.logger.info('success: created account %s in wallet %s', response.name, this.config.str('wallet'));
     }
   }
 
@@ -194,9 +143,71 @@ class CLI {
     await this.hardware.close();
   }
 
+  // TODO: this could be easier to manage as an iterator
+  // with a switch statement
+  validateConfig() {
+    let msg = '';
+    let valid = true;
+
+    if (!this.config.has('vendor')) {
+      msg += 'must provide vendor\n';
+      valid = false;
+    }
+
+    const network = this.config.str('network');
+    if (!network) {
+      msg += 'must provide network\n';
+      valid = false;
+    }
+
+    if (!['main', 'testnet', 'regtest', 'simnet'].includes(network)) {
+      msg += `invalid network: ${network}\n`
+      valid = false;
+    }
+
+    if (!this.config.has('path')) {
+      // gross...
+      // will auto increment to create the next account
+      // if not index is passed
+      // create-account does not require an index
+      if (!this.config.has('create-account')) {
+        if (!this.config.has('index')) {
+          msg += 'must pass index\n';
+          valid = false;
+        }
+      }
+    }
+
+    if (this.config.has('create-wallet')) {
+      if (!this.config.has('wallet')) {
+        msg += 'must pass wallet\n';
+        valid = false;
+      }
+      if (!this.config.has('api-key'))
+        this.logger.debug('no api key passed');
+    }
+
+    if (this.config.has('create-account')) {
+      if (!this.config.has('wallet')) {
+        msg += 'must pass wallet\n';
+        valid = false;
+      }
+
+      if (!this.config.has('account')) {
+        msg += 'must pass account\n';
+        valid = false;
+      }
+
+      if (!this.config.has('token'))
+        this.logger.debug('no token passed');
+    }
+
+    return [valid, msg];
+  }
+
   // TODO: finish and document
-  help() {
-    return '\n' +
+  help(msg = '') {
+    return msg + '\n' +
       'pubkeys.js - manage hd public keys using ledger or trezor' +
       '\n' +
       '  --path\n' +
