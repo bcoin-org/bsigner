@@ -13,19 +13,20 @@ const {Path} = require('../src/path');
 
 /*
  * extract public keys and make wallets/accounts
- * TODO
- * - add multisig support
- * - document cli flags
- * - don't throw error for not providing api-key
+ * TODO:
+ * - document all cli flags
  * - add retoken
- *
+ * - make client work against remote servers
  */
 
 class CLI {
   constructor() {
     // TODO: think about good alias usage
     this.config = new Config('hardwarelib', {
-      alias: {},
+      alias: {
+        h: 'help',
+        i: 'index',
+      },
     });
 
     this.config.load({
@@ -38,7 +39,7 @@ class CLI {
   }
 
   async open() {
-    this.logger = new blgr(this.config.str('loglevel', 'debug'));
+    this.logger = new blgr(this.config.str('loglevel', 'info'));
     await this.logger.open();
 
     if (this.config.has('help')) {
@@ -66,7 +67,7 @@ class CLI {
       vendor: this.config.str('vendor'),
       retry: this.config.bool('retry', true),
       network: network.type,
-      logger: this.logger,
+      logger: this.logger.context('hardware'),
     });
 
     await this.hardware.initialize();
@@ -98,7 +99,7 @@ class CLI {
       throw new Error('problem getting public key');
 
     this.logger.info('extended public key:\n       %s', hdpubkey.xpubkey(network.type));
-    this.logger.info('hex public key:\n       %s', hdpubkey.publicKey.toString('hex'));
+    this.logger.debug('hex public key:\n       %s', hdpubkey.publicKey.toString('hex'));
 
     {
       const receivehdpubkey = hdpubkey.derive(0).derive(0);
@@ -210,10 +211,18 @@ class CLI {
     return msg + '\n' +
       'pubkeys.js - manage hd public keys using ledger or trezor' +
       '\n' +
-      '  --path\n' +
-      '  --index\n' +
-      '  --create-wallet\n' +
-      '  --create-account\n'
+      '  --path                - HD node derivation path\n' +
+      '  --index               - bip44 account index\n' +
+      '  --vendor              - key manager, ledger or trezor\n' +
+      '  --network             - main, testnet, regtest or simnet\n' +
+      '  --create-wallet       - create bcoin wallet using derived pubkey\n' +
+      '    --wallet            - name of wallet to create\n' +
+      '    --api-key           - optional bcoin api key\n' +
+      '  --create-account      - create bcoin account using derived pubkey\n' +
+      '    --wallet            - name of wallet to create account in\n' +
+      '    --account           - name of account to create\n' +
+      '    --api-key           - optional bcoin api key\n' +
+      '';
   }
 }
 
