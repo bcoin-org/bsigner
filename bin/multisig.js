@@ -9,12 +9,14 @@ const blgr = require('blgr');
 const assert = require('bsert');
 const {WalletClient} = require('bclient');
 
-const {Path,hash} = require('../src/common');
+const {prepareTypes} = require('../src/common');
+const {Path} = require('../src/path');
 const {Hardware} = require('../src/hardware');
-const {prepareSign} = require('../src/app');
+const {prepareSign,generateToken} = require('../src/app');
 
 /*
  * TODO: if this.config is mutated, then things will break
+ * add json flag for great cli foo
  */
 
 class CLI {
@@ -36,7 +38,7 @@ class CLI {
     this.logger = new blgr(this.config.str('loglevel', 'debug'));
     await this.logger.open();
 
-    if (this.config.str('help')) {
+    if (this.config.has('help')) {
       this.logger.info(this.help());
       process.exit(0);
     }
@@ -61,7 +63,7 @@ class CLI {
       this.path = Path.fromString(this.config.str('path'));
     else
       this.path = Path.fromOptions({
-        network: this.config.str('network', 'testnet'),
+        network: network.type,
         purpose: this.config.uint('purpose', 44),
         account: this.config.uint('index', 0),
         // allow for custom coin paths
@@ -71,8 +73,11 @@ class CLI {
     /*
      * get multisig wallet info
      */
-    if (this.config.str('get-info')) {
+    if (this.config.has('get-info')) {
       const info = await this.wallet.getInfo(true);
+      if (!info)
+        throw new Error('could not fetch wallet info');
+
       this.logger.info('wallet id: %s', info.id);
       this.logger.info('initialized: %s', info.initialized);
       if (info.initialized) {
@@ -85,7 +90,7 @@ class CLI {
     /*
      * get proposals
      */
-    if (this.config.str('get-proposals')) {
+    if (this.config.has('get-proposals')) {
       const proposals = await this.wallet.getProposals(true);
 
       if (!proposals || proposals.length === 0)
@@ -111,9 +116,10 @@ class CLI {
     /*
      * create multisig wallet
      */
-    if (this.config.bool('create-wallet')) {
-      const hdpubkey = await this.hardware.getPublicKey(this.path.toList());
-      const cosignerToken = hash(hdpubkey.publicKey);
+    if (this.config.has('create-wallet')) {
+      const cosignerToken = await generateToken(this.hardware, this.path);
+
+      const hdpubkey = await this.hardware.getPublicKey(this.path);
 
       const response = await this.client.createWallet(this.config.str('wallet'), {
         witness: this.config.bool('segwit', false),
@@ -122,7 +128,7 @@ class CLI {
         m: this.config.uint('m'),
         n: this.config.uint('n'),
         cosignerName: this.config.str('cosigner-name'),
-        path: this.path.toString(),
+        cosignerPath: this.path.toString(),
         cosignerToken: cosignerToken.toString('hex'),
       });
 
@@ -133,9 +139,9 @@ class CLI {
       this.logger.info('cosigner name/token: %s/%s', cosigner.name, cosigner.token);
     }
 
-    if (this.config.bool('join-wallet')) {
+    if (this.config.has('join-wallet')) {
       const hdpubkey = await this.hardware.getPublicKey(this.path.toList());
-      const cosignerToken = hash(hdpubkey.publicKey);
+      const cosignerToken = await generateToken(this.hardware, this.path);
 
       const join = await this.wallet.joinWallet({
         cosignerName: this.config.str('cosigner-name'),
@@ -153,9 +159,9 @@ class CLI {
     /*
      * create proposal
      */
-    if (this.config.str('create-proposal')) {
-      const hdpubkey = await this.hardware.getPublicKey(this.path.toList());
-      const cosignerToken = hash(hdpubkey.publicKey);
+    if (this.config.has('create-proposal')) {
+      const hdpubkey = await this.hardware.getPublicKey(this.path.toString());
+      const cosignerToken = await generateToken(this.hardware, this.path);
 
       const wallet = this.client.wallet(this.config.str('wallet'), cosignerToken.toString('hex'));
       const proposal = await wallet.createProposal({
@@ -177,11 +183,11 @@ class CLI {
     }
 
 
-    if (this.config.str('approve-proposal')) {
+    if (this.config.has('approve-proposal')) {
 
       const pid = this.config.uint('proposal-id');
       const ptx = await this.wallet.getProposalMTX(pid, {
-        path: true,
+        paths: true,
         scripts: true,
       });
 
@@ -189,12 +195,19 @@ class CLI {
         throw new Error('no proposal to approve');
 
       const hdpubkey = await this.hardware.getPublicKey(this.path.toList());
-      const cosignerToken = hash(hdpubkey.publicKey);
+      const cosignerToken = await generateToken(this.hardware, this.path);
 
       const mtx = MTX.fromRaw(Buffer.from(ptx.tx.hex, 'hex'));
 
-      // TEMP: remove hdpubkey from fn signature when fix is merged into bcoin
-      const { paths, coins, inputTXs } = await prepareSign(this.wallet, hdpubkey, ptx.tx, this.config);
+      const { coins, inputTXs, paths } = await prepareSign({
+        wallet: this.wallet,
+        tx: ptx.tx,
+        paths: ptx.paths,
+        account: this.config.uint('index'),
+        network: network.type,
+        purpose: this.config.uint('purpose', 44),
+      });
+
       const scripts = ptx.scripts;
 
       const signed = await this.hardware.signTransaction(mtx, {
@@ -220,7 +233,7 @@ class CLI {
     if (this.config.str('reject-proposal')) {
 
       const hdpubkey = await this.hardware.getPublicKey(this.path.toList());
-      const cosignerToken = hash(hdpubkey.publicKey);
+      const cosignerToken = await generateToken(this.hardware, this.path);
 
       const wallet = this.client.wallet(this.config.str('wallet'), cosignerToken.toString('hex'));
       const rejection = await wallet.rejectProposal(this.config.uint('proposal-id'));
@@ -229,7 +242,7 @@ class CLI {
     }
   }
 
-  destroy() {
+  async destroy() {
     await this.hardware.close();
   }
 
@@ -242,13 +255,13 @@ class CLI {
     let msg = '';
     let valid = true;
 
-    if (this.config.str('get-info'))
+    if (this.config.has('get-info'))
       return [valid, msg];
 
-    if (this.config.str('get-proposals'))
+    if (this.config.has('get-proposals'))
       return [valid, msg];
 
-    if (!this.config.str('vendor')) {
+    if (!this.config.has('vendor')) {
       msg += 'must provide vendor\n';
       valid = false;
     }
@@ -264,18 +277,19 @@ class CLI {
       valid = false;
     }
 
-    if (!this.config.str('api-key'))
+    // TODO: this may need a refactor
+    if (!this.config.has('api-key'))
       this.logger.debug('no api key passed');
-    if (!this.config.str('token'))
+    if (!this.config.has('token'))
       this.logger.debug('no token passed');
 
-    if (!this.config.str('wallet')) {
+    if (!this.config.has('wallet')) {
       msg += 'must provide wallet\n';
       valid = false;
     }
 
     // create wallet required config
-    if (this.config.str('create-wallet')) {
+    if (this.config.has('create-wallet')) {
       const m = this.config.uint('m');
       const n = this.config.uint('n');
 
@@ -284,18 +298,18 @@ class CLI {
         valid = false;
       }
 
-      if (!this.config.str('cosigner-name')) {
+      if (!this.config.has('cosigner-name')) {
         msg += 'must pass cosigner name\n';
         valid = false;
       }
     }
 
-    if (this.config.str('join-wallet')) {
+    if (this.config.has('join-wallet')) {
       if (!this.config.str('join-key')) {
         msg += 'must pass join key\n';
         valid = false;
       }
-      if (!this.config.str('wallet')) {
+      if (!this.config.has('wallet')) {
         msg += 'must pass wallet\n';
         valid = false;
       }
@@ -325,8 +339,8 @@ class CLI {
       }
     }
 
-    if (!this.config.str('path')) {
-      if (typeof this.config.uint('index') !== 'number') {
+    if (!this.config.has('path')) {
+      if (!this.config.has('index')) {
         msg += 'must pass index\n';
         valid = false;
       }
