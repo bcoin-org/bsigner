@@ -2,7 +2,7 @@
   "name": "hardwarelib",
   "version": "0.0.1",
   "description": "hardware wallet support for bcoin",
-  "main": "src/hardware.js",
+  "main": "lib/hardwarelib.js",
   "scripts": {
     "test": "bmocha -c test/*"
   },
