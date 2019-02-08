@@ -11,10 +11,14 @@ const {HDPublicKey,TX} = require('bcoin');
 
 const {vendors,bip44,parsePath,sleep} = require('./common');
 
+const {Path} = require('./path');
+
 /*
  * Hardware Class
  * wrapper around ledger and trezor
  * hardware wallets
+ *
+ * TODO: implement LOCAL flag
  */
 class Hardware {
   constructor(options) {
@@ -42,7 +46,7 @@ class Hardware {
     if (this.logger.closed)
       await this.logger.open();
 
-    this.logger.info('attempting %s initialization', this.vendor);
+    this.logger.debug('attempting %s initialization', this.vendor);
 
     try {
       switch (this.vendor) {
@@ -103,6 +107,10 @@ class Hardware {
           break;
         }
 
+        case vendors.LOCAL: {
+          throw new Error('local signing is not available yet');
+        }
+
         default:
           throw new Error('unknown vendor type:' + this.vendor);
       }
@@ -127,6 +135,8 @@ class Hardware {
       case vendors.LEDGER:
         break;
       case vendors.TREZOR:
+        break;
+      case vendors.LOCAL:
         break;
     }
   }
@@ -156,6 +166,9 @@ class Hardware {
    */
   async getPublicKey(path) {
     this.ensureInitialized();
+
+    if (Path.isPath(path))
+      path = path.toString();
 
     assert(Array.isArray(path) || typeof path === 'string');
 
@@ -236,6 +249,12 @@ class Hardware {
     const coins = options.coins || [];
     const paths = options.paths || [];
     const scripts = options.scripts || [];
+
+    // turn to string representation
+    for (let i = 0; i < paths.length; i++) {
+      if (Path.isPath(paths[i]))
+        paths[i] = paths[i].toString();
+    }
 
     this.logger.debug('starting sign transaction');
 
