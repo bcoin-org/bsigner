@@ -285,7 +285,17 @@ class Hardware {
       case vendors.LEDGER: {
         const ledgerInputs = this.ledgerInputs(tx, inputTXs, coins, paths, scripts);
 
-        return await this.device.signTransaction(tx, ledgerInputs);
+        const result = await this.device.signTransaction(tx, ledgerInputs);
+
+        this.logger.debug('txid: %s', result.txid());
+        for (let [i, input] of Object.entries(result.inputs)) {
+          let scriptsig = input.script.getPubkeyhashInput();
+          if (scriptsig)
+            scriptsig = scriptsig.map(s => s.toString('hex'));
+          this.logger.debug('input %s, scriptSig: %s', i, scriptsig);
+        }
+
+        return result;
       }
 
       // TODO: test this!
@@ -310,8 +320,6 @@ class Hardware {
         // when it works as expected
         if (response.type !== 'trezor.SignedTx')
           throw new Error('Error signing transaction');
-
-        debugger;
 
         const hex = response.message.serialized.serialized_tx;
         const transaction = TX.fromRaw(hex, 'hex');
@@ -535,9 +543,6 @@ class Hardware {
       this.logger.debug('input number: %s', i);
 
       const path = paths[i];
-
-      // TODO: create path class that can be
-      // pretty printed
       this.logger.debug('using path %s', path);
 
       // bcoin.MTX
@@ -547,7 +552,7 @@ class Hardware {
 
       let redeem;
       if (scripts[i])
-        redeem = Buffer.from(scripts[i]);
+        redeem = Buffer.from(scripts[i], 'hex');
       else if (input.redeem)
         redeem = input.redeem;
 
@@ -577,11 +582,17 @@ class Hardware {
 
     const inputTXs = options.inputTXs || [];
     const coins = options.coins || [];
-    const paths = options.paths || [];
+    let paths = options.paths || [];
     const scripts = options.scripts || [];
-    const env = options.env || null;
+    const enc = options.env || 'hex';
 
     const unlock = await this.lock.lock();
+
+    // turn to string representation
+    for (let i = 0; i < paths.length; i++) {
+      if (Path.isPath(paths[i]))
+        paths[i] = paths[i].toString();
+    }
 
     this.logger.debug('starting get signature');
 
@@ -606,6 +617,9 @@ class Hardware {
 
         const ledgerInputs = this.ledgerInputs(mtx, inputTXs, coins, paths, scripts);
         const signatures = await this.device.getTransactionSignatures(mtx, mtx.view, ledgerInputs);
+
+        for (const sig of signatures)
+          this.logger.debug('signature: %s', sig.toString('hex'));
 
         if (enc === 'hex')
           return signatures.map(s => s.toString('hex'));
