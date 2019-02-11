@@ -158,6 +158,7 @@ class CLI {
 
     /*
      * create proposal
+     * needs account index to create cosigner token
      */
     if (this.config.has('create-proposal')) {
       const hdpubkey = await this.hardware.getPublicKey(this.path.toString());
@@ -192,20 +193,27 @@ class CLI {
         scripts: true,
       });
 
+
       if (!ptx.tx)
         throw new Error('no proposal to approve');
 
 
       const mtx = MTX.fromRaw(Buffer.from(ptx.tx.hex, 'hex'));
 
-      const { coins, inputTXs, paths } = await prepareSign({
+      const { coins, inputTXs, paths, account, xkey } = await prepareSign({
         wallet: this.wallet,
         tx: ptx.tx,
         paths: ptx.paths,
-        account: this.config.uint('index'),
         network: network.type,
         purpose: this.config.uint('purpose', 44),
+        hardware: this.hardware,
       });
+
+      /*
+       * return index from prepareSign if index not provided
+       * so that the cosigner token could be generated using it
+       * brute force search for proper key
+       */
 
       const scripts = ptx.scripts;
 
@@ -220,7 +228,8 @@ class CLI {
       if (!signature)
         throw new Error('problem signing transaction');
 
-      const cosignerToken = await generateToken(this.hardware, this.path);
+      const path = Path.fromAccountPublicKey(xkey.xpubkey(network.type));
+      const cosignerToken = await generateToken(this.hardware, path);
 
       const wallet = this.client.wallet(this.config.str('wallet'), cosignerToken.toString('hex'));
       const approval = await wallet.approveProposal(pid, [signature], this.config.bool('broadcase', true));
@@ -338,10 +347,13 @@ class CLI {
       }
     }
 
+    // ugh
     if (!this.config.has('path')) {
       if (!this.config.has('index')) {
-        msg += 'must pass index\n';
-        valid = false;
+        if (this.config.has('create-proposal') || this.config.has('approve-proposal')) {
+          msg += 'must pass index\n';
+          valid = false;
+        }
       }
     }
 
@@ -354,6 +366,7 @@ class CLI {
   help(msg = '') {
     return msg +'\n' +
       'multisig.js - manage multisig transactions using trezor and ledger\n' +
+      // TODO: '  --json             - output in json\n' +
       '  --vendor           - ledger or trezor\n' +
       '  --get-info         - get multisig wallet info\n' +
       '    --wallet         - wallet id\n' +
@@ -364,11 +377,18 @@ class CLI {
       '    --wallet         - wallet id\n' +
       '    --m              - threshold to spend\n' +
       '    --n              - total number of cosigners\n' +
+      '    --cosigner-name  - cosigner creating wallet\n' +
+      '    --index          - index of hd public key to use\n' +
+      '  --join-wallet      - create multisig wallet\n' +
+      '    --join-key       - authentication key to join with\n' +
+      '    --index          - index of hd public key to use\n' +
+      '    --cosinger-name  - cosigner joining wallet\n' +
       '  --create-proposal  -\n' +
       '    --wallet         - wallet id\n' +
       '    --memo           - string description\n' +
+      '    --value          - amount in output\n' +
       '    --recipient      - base58/bech32 encoded address\n' +
-      '    --token\n' +
+      '    --token          - optional\n' +
       '  --approve-proposal\n' +
       '    --proposal-id    - integer proposal id\n' +
       '    --index          - bip44 account index\n' +

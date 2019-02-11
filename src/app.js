@@ -24,13 +24,54 @@ async function prepareSign(options) {
   const subtype = mtx.inputs[0].getSubtype();
   const paths = [];
 
+  // for brute search xpub by comparing each key
+  // in the multisig key list against keys locally
+  let target;
+
   switch (subtype) {
     case 'multisig': {
-
       assert(options.paths, 'must pass paths');
       assert(options.network, 'must pass network');
       assert(typeof options.purpose === 'number', 'must pass purpose');
-      assert(typeof options.account === 'number', 'must pass account');
+
+      // if account wasn't passed in, brute force
+      // it using the hardware device
+      let account;
+      if (!(typeof options.account === 'number')) {
+        assert(options.hardware, 'must pass hardware');
+        // fetch wallet info
+        const info = await wallet.getInfo(true);
+        if (!info)
+          throw new Error('could not fetch account info');
+        const keys = new Set(info.account.keys);
+
+        for (const key of keys.values()) {
+          const path = Path.fromAccountPublicKey(key);
+          const xkey = await options.hardware.getPublicKey(path);
+          if (keys.has(xkey.xpubkey(options.network))) {
+            target = key;
+            break;
+          }
+        }
+
+        if (!target)
+          throw new Error('must pass account index');
+
+        target = HDPublicKey.fromBase58(target);
+        // TEMPORARY HACK
+        // handle better in the Path class
+        account = (target.childIndex | 0x80000000) >>> 0;
+        // can now create a Path object from this key instead
+        // of just using it for its childIndex
+        // that may be more reliable than the way it is
+        // done below, would require less user input
+
+      } else {
+        assert(typeof options.account === 'number', 'must pass account');
+        account = options.account;
+      }
+
+      // search for right extended public key
 
       // paths from multisig backend look like
       // { branch, index, receive, change, nested }
@@ -39,7 +80,7 @@ async function prepareSign(options) {
         assert(typeof path.index === 'number');
 
         const p = Path.fromOptions({
-          account: options.account,
+          account: account,
           network: options.network,
           purpose: options.purpose,
           branch: path.branch,
@@ -87,6 +128,7 @@ async function prepareSign(options) {
     inputTXs,
     paths,
     mtx,
+    xkey: target,
   };
 }
 
