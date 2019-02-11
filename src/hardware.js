@@ -78,6 +78,7 @@ class Hardware {
         case vendors.TREZOR: {
           const debug = this.logLevel === 'debug';
           // TODO: falsy debug for now, its overwhelming
+
           const list = new trezor.DeviceList({ debug: this.trezordDebug });
 
           list.on('connect', device => {
@@ -409,7 +410,7 @@ class Hardware {
     for (const [i, input] of mtx.inputs.entries()) {
       this.logger.debug('input number: %s', i);
 
-      const path = paths[i];
+      let path = paths[i];
       if (typeof path === 'string')
         path = parsePath(path, true);
 
