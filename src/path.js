@@ -58,6 +58,9 @@ class Path {
     if (typeof options.coin === 'number')
       this.coin = options.coin;
 
+    // bug here - will templates the path incorrectly
+    // because it is assumed that everything is not hardened
+    // without any assertions
     let str = `m'/${this.purpose}'/${this.coin}'/${this.account}'`;
 
     if (typeof options.branch === 'number')
