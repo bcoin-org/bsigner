@@ -26,6 +26,7 @@ class CLI {
       alias: {
         h: 'help',
         i: 'index',
+        n: 'network',
       },
     });
 
@@ -57,8 +58,11 @@ class CLI {
 
     this.client = new WalletClient({
       network: network.type,
-      port: network.walletPort,
       apiKey: this.config.str('api-key'),
+      port: this.config.uint('http-port', network.walletPort),
+      host: this.config.str('http-host'),
+      url: this.config.str('url'),
+      ssl: this.config.bool('ssl'),
     });
 
     this.wallet = this.client.wallet(this.config.str('wallet'), this.config.str('token'));
