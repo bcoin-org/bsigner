@@ -2,6 +2,16 @@ const assert = require('bsert');
 const blake2b = require('bcrypto/lib/blake2b');
 const {BufferMap} = require('buffer-map');
 
+const vendors = {
+  LEDGER: 'ledger',
+  TREZOR: 'trezor',
+  LOCAL: 'local',
+};
+
+// hardened can be
+// represented as
+// (1 << 31) >>> 0
+
 // TODO: turn into proxy
 // with getting asserting
 // valid get on coinType
@@ -16,19 +26,9 @@ const bip44 = {
   hardened: 0x80000000,
 };
 
-const vendors = {
-  LEDGER: 'ledger',
-  TREZOR: 'trezor',
-  LOCAL: 'local',
-};
-
-const prepareTypes = {
-  STANDARD: 'standard',
-  MULTISIG: 'multisig',
-};
-
 // see satoshi labs slip 132 for reference
 // https://github.com/satoshilabs/slips/blob/master/slip-0132.md
+// TODO: update this to recent bcoin pr that changes the prefixes
 const HDVersionBytes = new BufferMap([
   // xpub: m'/44'/0'
   [Buffer.from('0488b21e', 'hex'), [
@@ -111,7 +111,6 @@ function sleep(time) {
 
 exports.bip44 = bip44;
 exports.vendors = vendors;
-exports.prepareTypes = prepareTypes;
 exports.hash = hash;
 exports.parsePath = parsePath;
 exports.sleep = sleep;
