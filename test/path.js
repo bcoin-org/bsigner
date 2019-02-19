@@ -28,9 +28,9 @@ describe('Path', function () {
     const list = path.toList();
 
     const expected = [
-      (44 | bip44.hardened) >>> 0,    // purpose
-      (0 | bip44.hardened) >>> 0,     // type
-      (index | bip44.hardened) >>> 0, // account index
+      Path.harden(44),     // purpose
+      Path.harden(0),      // type
+      Path.harden(index),  // account index
     ];
 
     for (const [i, uint] of Object.entries(list))
@@ -99,7 +99,7 @@ describe('Path', function () {
 
   it('should properly convert hardened string', () => {
     const purpose = 44;
-    const type = 5353; // hns shills
+    const type = 5353; // hns :)
     const index = 12;
     const input = `m'/${purpose}'/${type}'/${index}'`;
 
@@ -108,9 +108,9 @@ describe('Path', function () {
     const list = path.toList();
 
     const expected = [
-      (purpose | bip44.hardened) >>> 0,
-      (type | bip44.hardened) >>> 0,
-      (index | bip44.hardened) >>> 0,
+      Path.harden(purpose),
+      Path.harden(type),
+      Path.harden(index),
     ];
 
     assert.deepEqual(list, expected);
@@ -135,9 +135,9 @@ describe('Path', function () {
     const index = 0;
 
     const input = [
-      (purpose | bip44.hardened) >>> 0,
-      (type | bip44.hardened) >>> 0,
-      (index | bip44.hardened) >>> 0,
+      Path.harden(purpose),
+      Path.harden(type),
+      Path.harden(index),
     ];
 
     path = Path.fromList(input);
@@ -306,5 +306,32 @@ describe('Path', function () {
       assert.deepEqual(list, expected);
     }
   });
+
+  it('should fail to append when too long', () => {
+    const list = [0,0,0,0,0];
+    path = Path.fromList(list);
+    let err;
+    try {
+      path.push(0);
+    } catch(e) {
+      err = true;
+    }
+
+    assert.ok(err);
+  });
+
+  it('should append in non strict mode', () => {
+    path = Path.fromOptions({
+      purpose: Path.harden(44),
+      coin: Path.harden(0),
+      account: Path.harden(0),
+      strict: false,
+    });
+    for (let i = 0; i < 5; i++)
+      path = path.push(0);
+
+    assert.ok(path);
+  });
+
 });
 
