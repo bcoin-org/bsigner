@@ -6,7 +6,9 @@ const {phrase,testxpub} = require('./utils/key');
 
 /*
  * these tests require the use of a common seed between
- * a ledger and a trezor
+ * devices and locally
+ *
+ * the mnemonic abandon 11 times + about is used
  */
 
 const network = Network.get('regtest');
@@ -22,6 +24,11 @@ function getPath(accountIndex, network) {
   return path;
 }
 
+// use hardware global so it
+// can be properly closed after
+// the tests
+let hardware;
+
 describe('Get Public Key', function () {
   this.timeout(1e7);
 
@@ -29,9 +36,13 @@ describe('Get Public Key', function () {
     await logger.open();
   });
 
+  afterEach(async () => {
+    await hardware.close();
+  });
+
   it('should get public key from ledger', async ($) => {
 
-    const hardware = Hardware.fromOptions({
+    hardware = Hardware.fromOptions({
       vendor: 'ledger',
       network,
       logger,
@@ -57,7 +68,7 @@ describe('Get Public Key', function () {
           continue;
 
         if (Buffer.isBuffer(value))
-          assert.bufferEqual(value, testpubkey[key]);
+          assert.bufferEqual(value, testpubkey[key], 'be sure to use the right mnemonic');
         else
           assert.deepEqual(value, testpubkey[key]);
       }
@@ -76,7 +87,7 @@ describe('Get Public Key', function () {
     const accountIndex = 0;
     const path = getPath(accountIndex, network);
 
-    const hardware = Hardware.fromOptions({
+    hardware = Hardware.fromOptions({
       vendor: 'trezor',
       network,
       logger,
