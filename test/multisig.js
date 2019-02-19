@@ -36,7 +36,7 @@ const logger = new blgr('debug');
 let joinKey;
 
 // cosigner info
-let cosigners = {
+const cosignersInfo = {
   one: {
     path: Path.fromList([44,1,0], true),
     name: 'one',
@@ -48,6 +48,18 @@ let cosigners = {
   three: {
     path: Path.fromList([44,1,2], true),
     name: 'three',
+  },
+  four: {
+    path: Path.fromList([44,1,3], true),
+    name: 'four',
+  },
+  five: {
+    path: Path.fromList([44,1,4], true),
+    name: 'five',
+  },
+  six: {
+    path: Path.fromList([44,1,5], true),
+    name: 'six',
   },
 };
 
@@ -150,172 +162,230 @@ describe('Multisig', function () {
    * 2 - get account extended public key to join wallet
    * 3 - send request to join wallet
    * 4 - assert that the wallet was created
+   *
+   * do this both for witness and standard wallets
    */
-  it('should create a multisig wallet', async () => {
-    const cosigner = cosigners.one;
+  const walletTypes = ['witness', 'standard'];
+  const walletIds = ['foo', 'bar'];
+  let minedSoFar = 0;
+  for (let [ii, walletType] of Object.entries(walletTypes)) {
 
-    const token = await generateToken(hardware, cosigner.path);
-    const hdpubkey = await hardware.getPublicKey(cosigner.path);
-    const xpub = hdpubkey.xpubkey(network.type);
+    /*
+     * use different cosigners for each set of tests
+     */
+    let cosigners;
+    if (walletType === 'standard')
+      cosigners = [cosignersInfo.one, cosignersInfo.two, cosignersInfo.three];
+    else
+      cosigners = [cosignersInfo.four, cosignersInfo.five, cosignersInfo.six];
 
-    const response = await client.createWallet(walletIdOne, {
-      witness: false,
-      accountKey: xpub,
-      watchOnly: true,
-      m: 3,
-      n: 3,
-      cosignerName: cosigner.name,
-      cosignerPath: cosigner.path.toString(),
-      cosignerToken: token.toString('hex'),
-    });
+    // wallet id used in many places
+    const walletId = walletIds[ii];
 
-    assert.ok(response);
-    assert.equal(response.initialized, false);
+    it('should create a multisig wallet', async () => {
+      const cosigner = cosigners[0];
 
-    // keep track of the join key
-    joinKey = response.joinKey;
-  })
-
-  /*
-   * this test fully joins the wallet with the
-   * 2 remaining cosigners and then asserts
-   * that the initialized value on wallet info
-   * is set to true
-   */
-  it('should join with other cosigners', async () => {
-    const toJoin = [cosigners.two, cosigners.three];
-
-    for (const cosigner of toJoin) {
       const token = await generateToken(hardware, cosigner.path);
-
       const hdpubkey = await hardware.getPublicKey(cosigner.path);
       const xpub = hdpubkey.xpubkey(network.type);
 
-      const wallet = client.wallet(walletIdOne, token.toString('hex'));
+      // if wallet type is witness, make a segwit wallet
+      const witness = walletType === 'witness';
 
-      const response = await wallet.joinWallet({
+      const response = await client.createWallet(walletId, {
+        witness: witness,
+        accountKey: xpub,
+        watchOnly: true,
+        m: 3,
+        n: 3,
         cosignerName: cosigner.name,
         cosignerPath: cosigner.path.toString(),
         cosignerToken: token.toString('hex'),
-        joinKey: joinKey,
-        accountKey: xpub,
       });
+
       assert.ok(response);
-    }
+      assert.equal(response.initialized, false);
 
-    // assert that it has been fully initialized
-    const info = await client.getInfo(walletIdOne)
-    assert.equal(info.initialized, true);
-  });
+      // keep track of the join key
+      joinKey = response.joinKey;
+    })
 
-  /*
-   *
-   */
-  it('should mine blocks to the receive address', async () => {
-    const toMine = 3;
+    /*
+     * this test fully joins the wallet with the
+     * 2 remaining cosigners and then asserts
+     * that the initialized value on wallet info
+     * is set to true
+     */
+    it('should join with other cosigners', async () => {
+      const toJoin = [cosigners[1], cosigners[2]];
 
-    const {receiveAddress} = await client.getAccount(walletIdOne);
-    const mine = await nodeClient.execute('generatetoaddress', [toMine, receiveAddress]);
+      for (const cosigner of toJoin) {
+        const token = await generateToken(hardware, cosigner.path);
 
-    const nodeInfo = await nodeClient.getInfo();
-    const walletInfo = await client.getInfo(walletIdOne);
+        const hdpubkey = await hardware.getPublicKey(cosigner.path);
+        const xpub = hdpubkey.xpubkey(network.type);
 
-    // it is in the expected state
-    // each coinbase was given to the multisig
-    assert.equal(nodeInfo.chain.height, toMine);
-    assert.equal(walletInfo.balance.tx, toMine);
-  });
+        const wallet = client.wallet(walletId, token.toString('hex'));
 
-  /*
-   * this test creates a proposal using cosigner1
-   * it is important to use the right tokens
-   * it asserts that the right information is saved
-   */
-  it('should create a proposal', async () => {
-    const cosigner = cosigners.one;
-    const token = await generateToken(hardware, cosigner.path);
+        const response = await wallet.joinWallet({
+          cosignerName: cosigner.name,
+          cosignerPath: cosigner.path.toString(),
+          cosignerToken: token.toString('hex'),
+          joinKey: joinKey,
+          accountKey: xpub,
+        });
+        assert.ok(response);
+      }
 
-    const wallet = client.wallet(walletIdOne, token.toString('hex'));
-    const {changeAddress} = await wallet.getAccount();
-
-    const opts = {
-      memo: 'foobar mike jones',
-      cosigner: cosigner.name,
-      rate: 1e3,
-      sign: false,
-      account: 'default',
-      outputs: [{value: 1e5, address: changeAddress}],
-    }
-
-    const proposal = await wallet.createProposal(opts);
-
-    assert.equal(proposal.memo, opts.memo);
-    assert.equal(proposal.authorDetails.name, cosigner.name);
-    assert.equal(proposal.statusCode, Proposal.status.PROGRESS)
-  });
-
-  /*
-   *
-   */
-  it('should approve proposal', async ($) => {
-    $.skip();
-
-    const toApprove = [cosigners.two, cosigners.three];
-    const proposals = await client.getProposals(walletIdOne);
-
-    // only have created a single proposal
-    const proposal = proposals[0];
-
-    // TODO: turn to for loop
-    const cosigner = toApprove[0];
-    const token = await generateToken(hardware, cosigner.path);
-    const wallet = client.wallet(walletIdOne, token.toString('hex'));
-
-    // {tx,paths,scripts,txs}
-    const pmtx = await wallet.getProposalMTX(proposal.id, {
-      paths: true,
-      scripts: true,
-      txs: true,
+      // assert that it has been fully initialized
+      const info = await client.getInfo(walletId)
+      assert.equal(info.initialized, true);
     });
 
-    // transaction to sign
-    const raw = Buffer.from(pmtx.tx.hex, 'hex');
-    const mtx = MTX.fromRaw(raw);
+    /*
+     *
+     */
+    it('should mine blocks to the receive address', async () => {
+      const toMine = 3;
 
-    const paths = [];
-    const inputTXs = [];
-    const coins = [];
-    const scripts = [];
+      const {receiveAddress} = await client.getAccount(walletId);
+      const mine = await nodeClient.execute('generatetoaddress', [toMine, receiveAddress]);
 
-    // TODO this is the fn to move to the library
-    for (const [i, input] of Object.entries(pmtx.tx.inputs)) {
-      // handle path
-      let path = pmtx.paths[i];
-      path = cosigner.path.push(path.branch).push(path.index);
-      paths.push(path);
+      // keep track of the running total
+      minedSoFar += toMine;
 
-      // build input tx
-      inputTXs.push(MTX.fromRaw(pmtx.txs[i], 'hex'));
+      const nodeInfo = await nodeClient.getInfo();
+      const walletInfo = await client.getInfo(walletId);
 
-      // handle script
-      scripts.push(pmtx.scripts[i]);
-
-      // handle coin
-      const coin = Coin.fromJSON(input.coin);
-      coins.push(coin);
-      mtx.view.addCoin(coin);
-    }
-
-    const signature = await hardware.getSignature(mtx, {
-      paths,
-      inputTXs,
-      coins,
-      scripts,
-      enc: 'hex',
+      // it is in the expected state
+      // each coinbase was given to the multisig
+      assert.equal(nodeInfo.chain.height, minedSoFar);
+      // this is very fragile and can break
+      assert.equal(walletInfo.balance.tx, toMine);
     });
 
-    const approval = await wallet.approveProposal(proposal.id, [signature]);
-  });
+    /*
+     * this test creates a proposal using cosigner1
+     * it is important to use the right tokens
+     * it asserts that the right information is saved
+     */
+    it('should create a proposal', async () => {
+      const cosigner = cosigners[0];
+      const token = await generateToken(hardware, cosigner.path);
+
+      const wallet = client.wallet(walletId, token.toString('hex'));
+      const {changeAddress} = await wallet.getAccount();
+
+      const opts = {
+        memo: 'foobar mike jones',
+        cosigner: cosigner.name,
+        rate: 1e3,
+        sign: false,
+        account: 'default',
+        outputs: [{value: 1e5, address: changeAddress}],
+      }
+
+      const proposal = await wallet.createProposal(opts);
+
+      assert.equal(proposal.memo, opts.memo);
+      assert.equal(proposal.authorDetails.name, cosigner.name);
+      assert.equal(proposal.statusCode, Proposal.status.PROGRESS)
+    });
+
+    /*
+     * approve the proposal by having both cosigners
+     * send their signatures
+     */
+    it('should approve proposal', async () => {
+      const toApprove = [cosigners[0], cosigners[1], cosigners[2]];
+      const proposals = await client.getProposals(walletId);
+
+      // only have created a single proposal
+      const proposal = proposals[0];
+
+      // keep track of which cosigner it is iterating
+      // over with j
+      for (const [j, cosigner] of Object.entries(toApprove)) {
+        // get the cosigner token
+        const token = await generateToken(hardware, cosigner.path);
+        const wallet = client.wallet(walletId, token.toString('hex'));
+
+        // response is {tx,paths,scripts,txs}
+        const pmtx = await wallet.getProposalMTX(proposal.id, {
+          paths: true,
+          scripts: true,
+          txs: true,
+        });
+
+        // transaction to sign
+        const mtx = MTX.fromJSON(pmtx.tx);
+
+        /*
+         * build required data for
+         * signing - how to simplify?
+         */
+        const paths = [];
+        const inputTXs = [];
+        const coins = [];
+        const scripts = [];
+
+        for (const [i, input] of Object.entries(pmtx.tx.inputs)) {
+          // handle path
+          let path = pmtx.paths[i];
+          // using the cosigner here is cheating, unless there
+          // was a route to get cosignerInfo...
+          path = cosigner.path.push(path.branch).push(path.index);
+          paths.push(path);
+
+          // build input tx
+          inputTXs.push(MTX.fromRaw(pmtx.txs[i], 'hex'));
+
+          // handle script
+          scripts.push(pmtx.scripts[i]);
+
+          //console.log(input.coin)
+
+          // handle coin
+          const coin = Coin.fromJSON(input.coin);
+          coins.push(coin);
+        }
+
+        const signatures = await hardware.getSignature(mtx, {
+          paths,
+          inputTXs,
+          coins,
+          scripts,
+          enc: 'hex',
+        });
+
+        // do not broadcast explicitly, so we can assert on it
+        const shouldBroadcast = false;
+
+        const approval = await wallet.approveProposal(proposal.id, signatures, shouldBroadcast);
+
+        // cast j to an integer and when it is the final
+        // cosigner, assert that it is approved and otherwise
+        // assert that it is in progress
+        if ((j >> 0) === (toApprove.length - 1)) {
+          assert.equal(approval.proposal.statusCode, Proposal.status.APPROVED);
+        } else {
+          assert.equal(approval.proposal.statusCode, Proposal.status.PROGRESS);
+        }
+        assert.equal(approval.broadcasted, shouldBroadcast);
+      }
+    });
+
+    // this doesn't work as expected...
+    it('should broadcast the transaction', async ($) => {
+      $.skip();
+      // NULL32 is the admin token
+      const wallet = client.wallet(walletIdOne, NULL32.toString('hex'));
+      const info = await wallet.getInfo();
+      // this returns as empty
+      //const send = await client.sendProposal()
+    });
+
+  }
 
   it('should close', async () => {
     await walletNode.close();
