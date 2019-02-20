@@ -10,7 +10,7 @@ const {Path} = require('./path');
  * options.paths []Path
  *
  */
-async function prepareSign(options) {
+async function prepareSignOld(options) {
   assert(options.tx, 'must pass tx');
   assert(options.tx.hex, 'must pass tx hex');
   assert(options.wallet, 'must pass wallet');
@@ -140,6 +140,128 @@ async function generateToken(hardware, path) {
   return token;
 }
 
+/*
+ * @param {bcoin.MTX|Object} - options.mtx
+ *
+ */
+async function prepareSign(options) {
+  const out = {
+    paths: [],
+    inputTXs: [],
+    coins: [],
+    scripts: [],
+  }
+
+  const {wallet} = options;
+  let {tx,paths,path} = options;
+
+  assert(tx)
+  assert(wallet);
+
+  // must use fromJSON to build
+  // the bcoin.CoinView
+  if (!MTX.isMTX(tx))
+    tx = MTX.fromJSON(tx);
+
+  // if paths are not passed in
+  // assume the same path for each
+  // coin up to the account depth
+  if (!paths) {
+    if (!path) {
+      // if path not passed, try to assume path
+      const accountInfo = await wallet.getAccount(options.account);
+      if (!accountInfo)
+        throw new Error('problem fetching account info');
+      path = Path.fromAccountPublicKey(accountInfo.accountKey);
+    }
+    if (!Path.isPath(path))
+      path = Path.fromType(path);
+
+    // account level path
+    assert(path.depth === 3);
+    paths = tx.inputs.map(() => path);
+  }
+
+  assert(Array.isArray(paths));
+
+  for (const [i, input] of Object.entries(tx.inputs)) {
+
+    let prevhash = input.prevout.txid();
+    const prevTX = await wallet.getTX(prevhash);
+    const inputTX = TX.fromRaw(prevTX.tx, 'hex');
+    out.inputTXs.push(inputTX);
+
+    const coin = tx.view.getCoinFor(input);
+    if (!coin)
+      throw new Error('could not fetch coin');
+    out.coins.push(coin);
+
+    let base = paths[i];
+    const address = coin.getAddress().toString();
+    const keyinfo = await wallet.getKey(address);
+    if (!keyinfo)
+      throw new Error('could not fetch key info');
+    const {branch,index} = keyinfo;
+    base = base.push(branch).push(index);
+
+    out.paths.push(base);
+  }
+
+  return {
+    mtx: tx,
+    ...out,
+  }
+}
+
+/*
+ * build data structures required
+ * for multisig signing
+ *
+ * @param pmtx
+ * @param path
+ */
+function prepareSignMultisig(options) {
+  const {pmtx,path} = options;
+
+  assert(pmtx.tx, 'must pass tx');
+  assert(pmtx.paths, 'must pass paths');
+  assert(pmtx.scripts, 'must pass scripts');
+  assert(pmtx.txs, 'must pass txs');
+  assert(Path.isPath(path));
+
+  const out = {
+    paths: [],
+    inputTXs: [],
+    coins: [],
+    scripts: [],
+  }
+
+  const mtx = MTX.fromJSON(pmtx.tx);
+
+  for (const [i, input] of Object.entries(pmtx.tx.inputs)) {
+    // handle path
+    const {branch,index} = pmtx.paths[i];
+    const keypath = path.clone().push(branch).push(index);
+    out.paths.push(keypath);
+
+    // build input tx
+    out.inputTXs.push(MTX.fromRaw(pmtx.txs[i], 'hex'));
+
+    // handle script
+    out.scripts.push(pmtx.scripts[i]);
+
+    // handle coin
+    const coin = Coin.fromJSON(input.coin);
+    out.coins.push(coin);
+  }
+
+  return {
+    mtx,
+    ...out,
+  }
+}
+
 exports.prepareSign = prepareSign;
+exports.prepareSignMultisig = prepareSignMultisig;
 exports.generateToken = generateToken;
 
