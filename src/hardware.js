@@ -8,10 +8,15 @@ const assert = require('bsert');
 const {Lock} = require('bmutex');
 const blgr = require('blgr');
 const {HDPublicKey,TX} = require('bcoin');
+const {opcodes} = require('bcoin/lib/script/common');
 
 const {vendors,bip44,parsePath,sleep} = require('./common');
 
 const {Path} = require('./path');
+
+const {promisify} = require('util');
+const child_process = require('child_process');
+const exec = promisify(child_process.exec);
 
 /*
  * Hardware Class
@@ -64,10 +69,13 @@ class Hardware {
           });
           await device.open();
 
+          // handle both bcoin.Networks type or string
+          const network = this.network.type ? this.network.type : this.network;
+
           // TODO: handle ledger disconnect
           this.device = new LedgerBcoin({
             device,
-            network: this.network.type,
+            network,
           });
 
           this.initialized = true;
@@ -79,6 +87,10 @@ class Hardware {
           const debug = this.logLevel === 'debug';
           // TODO: falsy debug for now, its overwhelming
 
+          // TODO: enumerate to make sure one is connected
+          this.device = true;
+
+          /*
           const list = new trezor.DeviceList({ debug: this.trezordDebug });
 
           list.on('connect', device => {
@@ -104,6 +116,7 @@ class Hardware {
           if (!this.device)
             throw new Error('no Trezor device detected');
 
+          */
           this.initialized = true;
           break;
         }
@@ -197,28 +210,21 @@ class Hardware {
         return await this.device.getPublicKey(path);
       }
       case vendors.TREZOR: {
-        const response = await this.device.waitForSessionAndRun(async session => {
-          session.on('error', e => {
-            throw e;
-          });
-          // parse path into list of integers
-          if (typeof path === 'string')
-            path = parsePath(path, true);
-          return await session.getPublicKey(path, 'bitcoin', true);
-        });
 
-        const node = response.message.node;
+        // TEMPORARY HACKS
+        const pythonPath = '/Users/marktyneway/python/trezor-signing/bin/python';
+        const filename = '/Users/marktyneway/Projects/github.com/tynes/trezor-signing/main.py';
 
-        // sanity check
-        if (!node)
-          throw new Error('problem fetching public key');
+        const { stdout, stderr, error } = await exec(`${pythonPath} ${filename} get_public_key --path="${path}"`)
+
+        const node = JSON.parse(stdout);
 
         return HDPublicKey.fromOptions({
           depth: node.depth,
-          parentFingerPrint: node.fingerprint,
-          childIndex: node.child_num,
-          chainCode: Buffer.from(node.chain_code, 'hex'),
-          publicKey: Buffer.from(node.public_key, 'hex'),
+          childIndex: node.childIndex,
+          chainCode: Buffer.from(node.chainCode, 'hex'),
+          publicKey: Buffer.from(node.publicKey, 'hex'),
+          parentFingerPrint: node.parentFingerPrint,
         });
       }
       default:
@@ -240,11 +246,13 @@ class Hardware {
 
     // trezor only works with main and testnet
     // because it relies on their bitcore
+    /*
     if (this.vendor === vendors.TREZOR) {
       if (this.network.type === 'regtest' || this.network.type === 'simnet') {
         throw new Error(`unsupported vendor ${this.vendor} with network ${this.network}`);
       }
     }
+    */
 
     const inputTXs = options.inputTXs || [];
     const coins = options.coins || [];
@@ -288,12 +296,20 @@ class Hardware {
 
         const result = await this.device.signTransaction(tx, ledgerInputs);
 
-        this.logger.debug('txid: %s', result.txid());
+        /*
+         * this is a lot of code just to do some debug logging
+         * but its nice to see the signatures
+         */
+        this.logger.debug('(w)txid: %s', result.wtxid());
         for (let [i, input] of Object.entries(result.inputs)) {
-          let scriptsig = input.script.getPubkeyhashInput();
-          if (scriptsig)
-            scriptsig = scriptsig.map(s => s.toString('hex'));
-          this.logger.debug('input %s, scriptSig: %s', i, scriptsig);
+          if (input.witness.length)
+            this.logger.debug(`witness: ${input.witness.toString('hex')}`);
+          else if (input.script.length) {
+            let scriptsig = input.script.getPubkeyhashInput();
+            if (scriptsig)
+              scriptsig = scriptsig.map(s => s ? s.toString('hex') : null);
+            this.logger.debug('input %s, scriptSig: %s', i, scriptsig);
+          }
         }
 
         return result;
@@ -311,6 +327,16 @@ class Hardware {
           network = 'Testnet';
 
         const lockTime = tx.locktime;
+
+        // TEMPORARY HACKS
+        const pythonPath = '/Users/marktyneway/python/trezor-signing/bin/python';
+        const filename = '/Users/marktyneway/Projects/github.com/tynes/trezor-signing/main.py';
+
+        const json = {};
+
+        const { stdout, stderr, error } = await exec(`${pythonPath} ${filename} sign_tx --json=${json}`)
+
+        /*
         const response = await this.device.waitForSessionAndRun(async session => {
           // inputs, outputs, txs?, coinType
           return await session.signTx(trezorInputs, trezorOutputs, refTXs, network, lockTime);
@@ -326,6 +352,7 @@ class Hardware {
         const transaction = TX.fromRaw(hex, 'hex');
 
         return transaction;
+        */
       }
     }
   }
@@ -492,16 +519,32 @@ class Hardware {
   }
 
   /*
-   *   P2WSH
+   * checks if a coin was paid to
+   * a nested address
+   * see: https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#P2WPKH_nested_in_BIP16_P2SH
    *
+   * TODO: nested p2sh needs redeem?
+   * @param {bcoin.Coin} - coin
    */
-  isNested(coin) {
-    // there has to be a better way...
-    const isVersion0 = coin.script.raw[0] === 0x00;
-    const isPush20 = coin.script.raw[1] === 0x14;
-    if (isVersion0 && isPush20)
-      return true;
-    return false;
+  isNested(coin, redeem, witness) {
+    assert(coin, 'must provide coin');
+    const type = coin.getType();
+
+    if (type !== 'scripthash')
+      return false;
+
+    const raw = coin.script.raw;
+
+    const isP2WPKH = raw[0] === opcodes.OP_HASH160
+      && raw[1] === 0x14
+      && raw[22] === opcodes.OP_EQUAL
+      && raw.length === (1+1+20+1);
+
+    const isP2WSH = raw[0] === 0x00
+      && raw[1] === 0x14
+      && raw.length === (1+1+32);
+
+    return (isP2WPKH || isP2WSH) && (witness.length > 0);
   }
 
   /*
@@ -514,6 +557,7 @@ class Hardware {
   isSegwit(coin) {
     assert(coin, 'must provide coin');
     const type = coin.getType();
+    this.logger.debug('scriptPubKey: %s', coin.script ? coin.script.toString() : coin.script);
     if (type === 'witnessscripthash' || type === 'witnesspubkeyhash')
       return true;
     return false;
@@ -558,19 +602,23 @@ class Hardware {
         redeem = input.redeem;
 
       const coin = coins[i];
-      const segwit = this.isSegwit(coin);
 
+      const segwit = this.isSegwit(coin) || this.isNested(coin, redeem, input.witness);
+
+      this.logger.debug('using redeem: %s', redeem ? redeem.toString('hex') : redeem);
       this.logger.debug('using segwit %s', segwit);
 
       const ledgerInput = new LedgerTXInput({
         witness: segwit,
+        redeem,
+        coin,
+        path,
         index: input.prevout.index,
         tx: inputTX,
-        redeem,
-        path,
       });
       ledgerInputs.push(ledgerInput);
     }
+
     return ledgerInputs;
   }
 
@@ -615,6 +663,7 @@ class Hardware {
   async _getSignature(mtx, inputTXs, coins, paths, scripts, enc) {
     switch (this.vendor) {
       case vendors.LEDGER: {
+
 
         const ledgerInputs = this.ledgerInputs(mtx, inputTXs, coins, paths, scripts);
         const signatures = await this.device.getTransactionSignatures(mtx, mtx.view, ledgerInputs);
