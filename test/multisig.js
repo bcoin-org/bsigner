@@ -1,6 +1,6 @@
 const assert = require('bsert');
 const blgr = require('blgr');
-const {Path,Hardware,generateToken} = require('../lib/libsigner');
+const {Path,Hardware,generateToken,prepareSignMultisig} = require('../lib/libsigner');
 const {wallet,Network,protocol,FullNode,MTX,Coin} = require('bcoin');
 const {NodeClient} = require('bclient');
 const bmultisig = require('bmultisig/lib/bmultisig');
@@ -19,9 +19,10 @@ const network = Network.get(n);
 let walletNode;
 // full node
 let fullNode;
-// node client
+// node client bclient.NodeClient
 let nodeClient;
 // client for interacting with the wallet server
+// bclient.WalletClient
 let client;
 // signer
 let hardware;
@@ -63,13 +64,7 @@ const cosignersInfo = {
   },
 };
 
-// name of wallet for end to end testing
-// it has to be global so that the same
-// value can be used for creating and
-// joining the same wallet
-const walletIdOne = 'foobar';
-
-describe('Multisig', function () {
+describe('Multisig', function() {
   this.timeout(1e7);
 
   /*
@@ -156,6 +151,9 @@ describe('Multisig', function () {
    * a multisig wallet using an xpub from the device
    * 3 of 3 multisig wallet
    *
+   * do this for both a p2sh wallet
+   * and a p2wsh wallet
+   *
    * cosigner one initializes the wallet
    *
    * 1 - use generateToken to create cosigner token
@@ -165,7 +163,7 @@ describe('Multisig', function () {
    *
    * do this both for witness and standard wallets
    */
-  const walletTypes = ['witness', 'standard'];
+  const walletTypes = ['witness','standard'];
   const walletIds = ['foo', 'bar'];
   let minedSoFar = 0;
   for (let [ii, walletType] of Object.entries(walletTypes)) {
@@ -317,13 +315,13 @@ describe('Multisig', function () {
           txs: true,
         });
 
-        // transaction to sign
-        const mtx = MTX.fromJSON(pmtx.tx);
+        const {paths,inputTXs,coins,scripts,mtx} = prepareSignMultisig({
+          pmtx,
+          path: cosigner.path.clone(),
+        });
 
         /*
-         * build required data for
-         * signing - how to simplify?
-         */
+        const mtx = MTX.fromJSON(pmtx.tx);
         const paths = [];
         const inputTXs = [];
         const coins = [];
@@ -343,12 +341,11 @@ describe('Multisig', function () {
           // handle script
           scripts.push(pmtx.scripts[i]);
 
-          //console.log(input.coin)
-
           // handle coin
           const coin = Coin.fromJSON(input.coin);
           coins.push(coin);
         }
+        */
 
         const signatures = await hardware.getSignature(mtx, {
           paths,
@@ -366,25 +363,14 @@ describe('Multisig', function () {
         // cast j to an integer and when it is the final
         // cosigner, assert that it is approved and otherwise
         // assert that it is in progress
-        if ((j >> 0) === (toApprove.length - 1)) {
+        if ((j >> 0) === (toApprove.length - 1))
           assert.equal(approval.proposal.statusCode, Proposal.status.APPROVED);
-        } else {
+        else
           assert.equal(approval.proposal.statusCode, Proposal.status.PROGRESS);
-        }
+
         assert.equal(approval.broadcasted, shouldBroadcast);
       }
     });
-
-    // this doesn't work as expected...
-    it('should broadcast the transaction', async ($) => {
-      $.skip();
-      // NULL32 is the admin token
-      const wallet = client.wallet(walletIdOne, NULL32.toString('hex'));
-      const info = await wallet.getInfo();
-      // this returns as empty
-      //const send = await client.sendProposal()
-    });
-
   }
 
   it('should close', async () => {
