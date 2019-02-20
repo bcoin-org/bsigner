@@ -99,8 +99,17 @@ function parsePath(path, hard) {
   return result;
 }
 
-function hash(buf) {
-  return blake2b.digest(buf);
+/*
+ * simple hashing
+ *
+ * @param {Buffer|String} - preimage
+ * @param {String} [enc='hex']
+ * @returns {Buffer}
+ */
+function hash(preimage, enc = 'hex') {
+  if (!Buffer.isBuffer(preimage))
+    preimage = Buffer.from(preimage, enc);
+  return blake2b.digest(preimage);
 }
 
 function sleep(time) {
