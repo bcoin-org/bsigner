@@ -115,8 +115,7 @@ describe('Signing Transactions', function () {
   // start up a chain and mine some blocks
   // to an address from Signer
   before(async () => {
-    // allow for spending coinbase outputs
-    // immediately
+    // allow for spending coinbase outputs immediately
     protocol.consensus.COINBASE_MATURITY = 0;
     // only 1 BTC per block to force
     // transactions to use many inputs
@@ -138,15 +137,17 @@ describe('Signing Transactions', function () {
     /*
      * NOTE: assignment to a global
      * get xpub and bcoin.HDPublicKey
-     * for both the path and the witness path
+     * for p2pkh, p2wpkh
      */
     {
+      // standard p2pkh transactions
       const hdpubkey = await hardware.getPublicKey(path);
       const xpub = hdpubkey.xpubkey(network);
       keys.standard.xpub = xpub;
       keys.standard.hdpubkey = hdpubkey;
     }
     {
+      // standard p2wpkh transactions
       const hdpubkey = await hardware.getPublicKey(witpath);
       const xpub = hdpubkey.xpubkey(network);
       keys.witness.xpub = xpub;
@@ -174,12 +175,16 @@ describe('Signing Transactions', function () {
     witwallet = new MemWallet({
       network,
       xpub: keys.witness.xpub,
-      witness: false,
       watchOnly: true,
       witness: true,
       receiveDepth: 5,
     });
   });
+
+  // be sure to close the hardware after the tests
+  after(async () => {
+    await hardware.close();
+  })
 
   it('should mine blocks to the standard wallet', async () => {
     for (let i = 0; i < 3; i++) {
