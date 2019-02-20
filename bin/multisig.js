@@ -9,10 +9,10 @@ const blgr = require('blgr');
 const assert = require('bsert');
 const {WalletClient} = require('bclient');
 
-const {prepareTypes} = require('../src/common');
+const {guessPath} = require('../src/common');
 const {Path} = require('../src/path');
 const {Hardware} = require('../src/hardware');
-const {prepareSign,generateToken} = require('../src/app');
+const {prepareSignMultisig,generateToken} = require('../src/app');
 
 /*
  * TODO: if this.config is mutated, then things will break
@@ -59,13 +59,13 @@ class CLI {
 
     this.wallet = this.client.wallet(this.config.str('wallet'), this.config.str('token'));
 
-    if (this.config.str('path'))
+    if (this.config.has('path'))
       this.path = Path.fromString(this.config.str('path'));
-    else
+    else if (this.config.has('index'))
       this.path = Path.fromOptions({
         network: network.type,
         purpose: this.config.uint('purpose', 44),
-        account: this.config.uint('index', 0),
+        account: this.config.uint('index'),
         // allow for custom coin paths
         coin: this.config.uint('coin'),
       });
@@ -198,15 +198,24 @@ class CLI {
         throw new Error('no proposal to approve');
 
 
-      const mtx = MTX.fromRaw(Buffer.from(ptx.tx.hex, 'hex'));
+      // response is {tx,paths,scripts,txs}
+      const pmtx = await wallet.getProposalMTX(proposal.id, {
+        paths: true,
+        scripts: true,
+        txs: true,
+      });
 
-      const { coins, inputTXs, paths, account, xkey } = await prepareSign({
+      const {paths,inputTXs,coins,scripts,mtx} = prepareSignMultisig({
+        pmtx,
         wallet: this.wallet,
-        tx: ptx.tx,
-        paths: ptx.paths,
-        network: network.type,
-        purpose: this.config.uint('purpose', 44),
-        hardware: this.hardware,
+      });
+
+      const signatures = await hardware.getSignature(mtx, {
+        paths,
+        inputTXs,
+        coins,
+        scripts,
+        enc: 'hex',
       });
 
       /*
@@ -215,21 +224,18 @@ class CLI {
        * brute force search for proper key
        */
 
-      const scripts = ptx.scripts;
-
-      const signature = await this.hardware.getSignature(mtx, {
-        paths,
-        inputTXs,
-        coins,
-        scripts,
-        enc: 'hex',
-      });
-
       if (!signature)
         throw new Error('problem signing transaction');
 
-      const path = Path.fromAccountPublicKey(xkey.xpubkey(network.type));
-      const cosignerToken = await generateToken(this.hardware, path);
+      // if no path or index passed, try to guess the path from the keys
+      if (!this.path) {
+        const path = guessPath(this.hardware, this.wallet, network.type);
+        if (!path)
+          throw new Error('could not guess path');
+        this.path = path;
+      }
+
+      const cosignerToken = await generateToken(this.hardware, this.path);
 
       const wallet = this.client.wallet(this.config.str('wallet'), cosignerToken.toString('hex'));
       const approval = await wallet.approveProposal(pid, [signature], this.config.bool('broadcase', true));
@@ -350,7 +356,7 @@ class CLI {
     // ugh
     if (!this.config.has('path')) {
       if (!this.config.has('index')) {
-        if (this.config.has('create-proposal') || this.config.has('approve-proposal')) {
+        if (this.config.has('create-proposal')) {
           msg += 'must pass index\n';
           valid = false;
         }
