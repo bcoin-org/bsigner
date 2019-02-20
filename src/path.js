@@ -90,7 +90,9 @@ class Path {
     // over passed in coin type
     // since that isn't a common usecase
     if (options.network) {
-      this.coin = bip44.coinType[options.network];
+      const coin = bip44.coinType[options.network];
+      // the spec hardens the coin type
+      this.coin = Path.harden(coin);
       this.network = options.network;
     } else
       this.coin = parseOption(options.coin);
