@@ -5,11 +5,8 @@ const {HDPublicKey} = require('bcoin');
 const inspect = Symbol.for('nodejs.util.inspect.custom');
 
 /*
- * TODO: bugs around setting
- * purpose, coin and account
- * add handling of these in fromList,
- * since that is the main method that
- * nearly all of the other methods call
+ * Path class for handling bip44 paths
+ *
  */
 class Path {
   constructor() {
@@ -25,6 +22,9 @@ class Path {
     this.coin = null;
     this.account = null;
     this.network = null;
+
+    this.branch = null;
+    this.index = null;
   }
 
   /*
@@ -83,10 +83,8 @@ class Path {
    * note: this doesn't harden by default
    */
   fromOptions(options) {
-    if (typeof options.purpose === 'number')
-      this.purpose = options.purpose;
-    if (typeof options.account === 'number')
-      this.account = options.account
+    this.purpose = parseOption(options.purpose);
+    this.account = parseOption(options.account);
 
     // prioritize using the network
     // over passed in coin type
@@ -94,13 +92,11 @@ class Path {
     if (options.network) {
       this.coin = bip44.coinType[options.network];
       this.network = options.network;
-    } else if (typeof options.coin === 'number')
-      this.coin = options.coin;
+    } else
+      this.coin = parseOption(options.coin);
 
-    if (typeof options.branch === 'number')
-      this.branch = options.branch;
-    if (typeof options.index === 'number')
-      this.index = options.index;
+    this.branch = parseOption(options.branch);
+    this.index = parseOption(options.index);
 
     if (options.strict)
       this.strict = options.strict;
@@ -109,14 +105,15 @@ class Path {
     assert(this.account !== null);
     assert(this.coin !== null);
 
+    // follow bip44 ordering
     const list = [
       this.purpose,
-      this.account,
       this.coin,
+      this.account,
     ];
 
     // either add both or add neither
-    if (this.branch !== undefined && this.index !== undefined) {
+    if (this.branch !== null && this.index !== null) {
       list.push(this.branch);
       list.push(this.index);
     }
@@ -223,6 +220,8 @@ class Path {
   fromAccountPublicKey(xkey) {
     if (typeof xkey === 'string')
       xkey = base58.decode(xkey);
+    if (HDPublicKey.isHDPublicKey(xkey))
+      throw new Error('cannot infer from HDPublicKey');
 
     const prefix = xkey.slice(0,4);
     const base = HDVersionBytes.get(prefix)
@@ -289,6 +288,54 @@ class Path {
   static isPath(obj) {
     return obj instanceof Path;
   }
+}
+
+// helper functions for parsing fromOptions
+function isOption(option) {
+  if (typeof option === 'object' && typeof option.index === 'number')
+    return true;
+  return false;
+}
+function fromOption(option) {
+  assert(typeof option.index === 'number');
+  if (option.hardened) {
+    return Path.harden(option.index);
+  }
+  return option.index;
+}
+function isNumberLike(option) {
+  if (typeof option === 'number')
+    return true;
+  if (typeof option === 'string') {
+    // support for both ' and h suffix
+    const last = option[option.length-1];
+    if (last === `'` || last === 'h')
+      option = option.slice(0,option.length-1);
+    if (!Number.isNaN(parseInt(option, 10)))
+      return true;
+  }
+  return false;
+}
+function fromNumberLike(option) {
+  if (typeof option === 'number')
+    return option;
+  if (typeof option === 'string') {
+    const last = option[option.length-1];
+    if (last === `'` || last === 'h') {
+      let index = option.slice(0,option.length-1);
+      index = parseInt(index, 10);
+      return Path.harden(index);
+    }
+    return parseInt(option, 10);
+  }
+  throw new Error('unexpected type');
+}
+function parseOption(option) {
+  if (isNumberLike(option))
+    return fromNumberLike(option);
+  if (isOption(option))
+    return fromOption(option);
+  return null;
 }
 
 exports.Path = Path;

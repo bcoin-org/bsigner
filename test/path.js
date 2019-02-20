@@ -58,9 +58,9 @@ describe('Path', function () {
 
     const list = path.toList();
     const expected = [
-      (0 | bip44.hardened) >>> 0,
-      (0 | bip44.hardened) >>> 0,
-      (0 | bip44.hardened) >>> 0,
+      Path.harden(0),
+      Path.harden(0),
+      Path.harden(0),
     ];
 
     assert.deepEqual(list, expected);
@@ -150,7 +150,8 @@ describe('Path', function () {
 
   it('should instantiate from xpub', () => {
     const xpub = testxpub(0, 'regtest');
-    path = Path.fromAccountPublicKey(xpub);
+    const accountKey = xpub.xpubkey('regtest')
+    path = Path.fromAccountPublicKey(accountKey);
     assert.ok(path);
   });
 
@@ -169,15 +170,16 @@ describe('Path', function () {
 
     for (let [i, network] of Object.entries(networks)) {
       const xpub = testxpub(index, network);
-      path = Path.fromAccountPublicKey(xpub);
+      const accountKey = xpub.xpubkey(network);
+      path = Path.fromAccountPublicKey(accountKey);
 
       const str = path.toString();
       assert.equal(str, strings[i]);
 
       const expected = [
-        (bip44.purpose | bip44.hardened) >>> 0,
-        (bip44.coinType[network]| bip44.hardened) >>> 0,
-        (index | bip44.hardened) >>> 0,
+        Path.harden(44),
+        Path.harden(bip44.coinType[network]),
+        Path.harden(index),
       ];
 
       const list = path.toList();
@@ -187,12 +189,13 @@ describe('Path', function () {
 
   it('should throw an error for bad xpub prefix', () => {
     let xpub = testxpub(0, 'regtest');
+    let accountKey = xpub.xpubkey('regtest');
     // replace first character with a
-    xpub = 'a' + xpub.slice(1);
+    accountKey = 'a' + accountKey.slice(1);
 
     let err;
     try {
-      path = Path.fromAccountPublicKey(xpub)
+      path = Path.fromAccountPublicKey(accountKey);
     } catch(e) {
       err = true;
     }
@@ -206,9 +209,9 @@ describe('Path', function () {
     const index = 0;
 
     const input = [
-      (purpose | bip44.hardened) >>> 0,
-      (type | bip44.hardened) >>> 0,
-      (index | bip44.hardened) >>> 0,
+      Path.harden(purpose),
+      Path.harden(type),
+      Path.harden(index),
     ];
 
     path = Path.fromList(input);
@@ -299,8 +302,8 @@ describe('Path', function () {
     {
       const expected = [
         ...input,
-        (one | bip44.hardened) >>> 0,
-        (two | bip44.hardened) >>> 0,
+        Path.harden(one),
+        Path.harden(two),
       ];
 
       assert.deepEqual(list, expected);
@@ -333,5 +336,43 @@ describe('Path', function () {
     assert.ok(path);
   });
 
+  it('should instantiate from options object', () => {
+    const purpose = 44;
+    const coin = 105;
+    const account = 0;
+
+    path = Path.fromOptions({
+      purpose: {index: purpose, hardened: true},
+      coin: {index: coin, hardened: true},
+      account: {index: account, hardened: true}
+    });
+
+    assert.equal(path.purpose, Path.harden(purpose));
+    assert.equal(path.coin, Path.harden(coin));
+    assert.equal(path.account, Path.harden(account));
+  });
+
+  it('should instantiate from mixed options object', () => {
+    const purpose = 999;
+    const coin = 0;
+    const account = 14;
+
+    path = Path.fromOptions({
+      purpose: {index: purpose, hardened: false},
+      coin: {index: coin},
+      account: {index: account, hardened: true},
+    });
+
+    assert.equal(path.purpose, purpose);
+    assert.equal(path.coin, coin);
+    assert.equal(path.account, Path.harden(account));
+
+    const list = path.toList();
+    assert.deepEqual(list, [
+      purpose,
+      coin,
+      Path.harden(account),
+    ]);
+  })
 });
 
