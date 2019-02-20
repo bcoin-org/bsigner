@@ -21,7 +21,7 @@ const {Hardware,Path} = require('libsigner');
   const path = Path.fromList([44,0,0], true);
 
   const hardware = Hardware.fromOptions({
-    vendor: 'ledger',    // supports ledger or trezor
+    vendor: 'ledger',    // supports ledger
     network: 'regtest',  // main, testnet, regtest, or simnet
   });
   
@@ -51,8 +51,17 @@ $ ./bin/pubkeys.js --vendor ledger --index 0 --network regtest
 
 ```
 
+### Notes
+
+Signing transactions with both legacy and segwit
+inputs will not work on ledger and trezor hardware 
+devices due to their firmware. It is possible
+to craft such transactions with bcoin, so please
+be careful not to do so.
+
 TODO:
 - document the other app functions
+- Separate tests so that they can more easily run
 - document cli usage
 - prepackage `trezor.js` post babelified, so that we do not need to include `babel-runtime` as a dependency.
 - Handshake support
