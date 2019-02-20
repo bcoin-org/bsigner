@@ -1,20 +1,18 @@
 const assert = require('bsert');
 const blake2b = require('bcrypto/lib/blake2b');
 const {BufferMap} = require('buffer-map');
+const network = require('bcoin/lib/protocol/networks');
 
+/*
+ * vendors to act as backends
+ * for the Hardware signer
+ */
 const vendors = {
   LEDGER: 'ledger',
   TREZOR: 'trezor',
   LOCAL: 'local',
 };
 
-// hardened can be
-// represented as
-// (1 << 31) >>> 0
-
-// TODO: turn into proxy
-// with getting asserting
-// valid get on coinType
 const bip44 = {
   purpose: 44,
   coinType: {
@@ -26,34 +24,61 @@ const bip44 = {
   hardened: 0x80000000,
 };
 
+// hardened can be
+// represented as
+// (1 << 31) >>> 0
+
+/*
+ * harden a number
+ * assert that it is not a hardened string
+ */
+function harden(value) {
+  if (typeof value === 'string') {
+    const suffix = value[value.length-1];
+    assert(suffix !== `'` || suffix !== 'h');
+    value = parseInt(value, 10);
+  }
+  return (value | bip44.hardened) >>> 0;
+}
+
+/*
+ * convert the integer in the bcoin#network
+ * object into a buffer based on the network
+ */
+function networkKey(type) {
+  const buf = Buffer.alloc(4);
+  buf.writeUInt32BE(network[type].keyPrefix.xpubkey);
+  return buf;
+}
+
 // see satoshi labs slip 132 for reference
 // https://github.com/satoshilabs/slips/blob/master/slip-0132.md
-// TODO: update this to recent bcoin pr that changes the prefixes
 const HDVersionBytes = new BufferMap([
   // xpub: m'/44'/0'
-  [Buffer.from('0488b21e', 'hex'), [
-    (bip44.purpose | bip44.hardened) >>> 0,
-    (bip44.coinType.main | bip44.hardened) >>> 0,
+  [networkKey('main'), [
+    harden(bip44.purpose),
+    harden(bip44.coinType.main),
   ]],
   // tpub: m'/44'/1'
-  [Buffer.from('043587cf', 'hex'), [
-    (bip44.purpose | bip44.hardened) >>> 0,
-    (bip44.coinType.testnet | bip44.hardened) >>> 0,
+  //0x043587cf
+  [networkKey('testnet'), [
+    harden(bip44.purpose),
+    harden(bip44.coinType.testnet),
   ]],
-  // rpub: m'/44'/1'
-  [Buffer.from('eab4fa05', 'hex'), [
-    (bip44.purpose | bip44.hardened) >>> 0,
-    (bip44.coinType.regtest | bip44.hardened) >>> 0,
+  // tpub: m'/44'/1'
+  [networkKey('regtest'), [
+    harden(bip44.purpose),
+    harden(bip44.coinType.regtest),
   ]],
   // spub: m'/44'/1'
-  [Buffer.from('0420bd3a', 'hex'), [
-    (bip44.purpose | bip44.hardened) >>> 0,
-    (bip44.coinType.simnet | bip44.hardened) >>> 0,
+  [networkKey('simnet'), [
+    harden(bip44.purpose),
+    harden(bip44.coinType.simnet),
   ]],
 ]);
 
 /*
- *
+ * parsePath, stolen from bcoin utils
  */
 function parsePath(path, hard) {
   assert(typeof path === 'string');
@@ -160,4 +185,4 @@ exports.parsePath = parsePath;
 exports.sleep = sleep;
 exports.HDVersionBytes = HDVersionBytes;
 exports.guessPath = guessPath;
-
+exports.harden = harden;
