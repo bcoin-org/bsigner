@@ -27,6 +27,7 @@ class CLI {
         h: 'help',
         i: 'index',
         n: 'network',
+        v: 'vendor',
       },
     });
 
@@ -39,6 +40,7 @@ class CLI {
       this.config.open(this.config.path('config'));
   }
 
+  // TODO: default to outputting json
   async open() {
     this.logger = new blgr(this.config.str('loglevel', 'info'));
     await this.logger.open();
@@ -88,10 +90,10 @@ class CLI {
       }
       this.path = Path.fromOptions({
         network: network.type,
-        purpose: this.config.uint('purpose', 44),
-        account: this.config.uint('index', 0),
+        purpose: this.config.str('purpose', '44h'),
+        account: this.config.str('index'),
         // allow for custom coin paths
-        coin: this.config.uint('coin'),
+        coin: this.config.str('coin'),
       });
     }
 
