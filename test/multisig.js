@@ -320,33 +320,6 @@ describe('Multisig', function() {
           path: cosigner.path.clone(),
         });
 
-        /*
-        const mtx = MTX.fromJSON(pmtx.tx);
-        const paths = [];
-        const inputTXs = [];
-        const coins = [];
-        const scripts = [];
-
-        for (const [i, input] of Object.entries(pmtx.tx.inputs)) {
-          // handle path
-          let path = pmtx.paths[i];
-          // using the cosigner here is cheating, unless there
-          // was a route to get cosignerInfo...
-          path = cosigner.path.push(path.branch).push(path.index);
-          paths.push(path);
-
-          // build input tx
-          inputTXs.push(MTX.fromRaw(pmtx.txs[i], 'hex'));
-
-          // handle script
-          scripts.push(pmtx.scripts[i]);
-
-          // handle coin
-          const coin = Coin.fromJSON(input.coin);
-          coins.push(coin);
-        }
-        */
-
         const signatures = await hardware.getSignature(mtx, {
           paths,
           inputTXs,
