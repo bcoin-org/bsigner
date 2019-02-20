@@ -4,7 +4,9 @@
   "description": "transaction signing support for bcoin",
   "main": "lib/libsigner.js",
   "scripts": {
-    "test": "bmocha -c test/*"
+    "test": "bmocha -c test/*",
+    "test:trezor": "bmocha -c test/* -g trezor",
+    "test:ledger": "bmocha -c test/* -g ledger"
   },
   "keywords": [
     "bitcoin",
@@ -22,8 +24,8 @@
     "bcoin": "git+https://github.com/bcoin-org/bcoin.git",
     "bledger": "git+https://github.com/bcoin-org/bledger.git",
     "blgr": "^0.1.5",
-    "bmultisig": "git+https://github.com/bcoin-org/bmultisig.git",
-    "bmultisig-client": "0.0.2",
+    "bmultisig": "git+https://github.com/nodar-chkuaselidze/bmultisig.git#compatibilities",
+    "bmultisig-client": "git+https://github.com/bcoin-org/bmultisig-client.git",
     "bmutex": "^0.1.5",
     "bsert": "0.0.8",
     "bstring": "^0.3.5",
