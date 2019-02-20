@@ -193,10 +193,8 @@ class CLI {
         scripts: true,
       });
 
-
       if (!ptx.tx)
         throw new Error('no proposal to approve');
-
 
       // response is {tx,paths,scripts,txs}
       const pmtx = await wallet.getProposalMTX(proposal.id, {
