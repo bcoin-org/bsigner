@@ -374,5 +374,21 @@ describe('Path', function () {
       Path.harden(account),
     ]);
   })
+
+  it('should instantiate from options with alt hardened syntax', () => {
+    const purpose = '12h';
+    const coin = '14';
+    const account = `1'`;
+
+    path = Path.fromOptions({
+      purpose: purpose,
+      coin: coin,
+      account: account,
+    });
+
+    assert.equal(path.purpose, Path.harden(12));
+    assert.equal(path.coin, 14);
+    assert.equal(path.account, Path.harden(1))
+  });
 });
 
