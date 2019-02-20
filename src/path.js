@@ -1,4 +1,4 @@
-const {parsePath,bip44,HDVersionBytes} = require('./common');
+const {parsePath,bip44,HDVersionBytes,harden} = require('./common');
 const assert = require('bsert');
 const {base58} = require('bstring');
 const {HDPublicKey} = require('bcoin');
@@ -280,11 +280,7 @@ class Path {
   }
 
   static harden(value) {
-    if (typeof value === 'string') {
-      assert(value[value.length-1] !== '\'');
-      value = parseInt(value, 10);
-    }
-    return (value | bip44.hardened) >>> 0;
+    return harden(value);
   }
 
   static isPath(obj) {
