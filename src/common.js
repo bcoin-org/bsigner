@@ -118,7 +118,7 @@ function sleep(time) {
   });
 }
 
-function guessPath(hardware, wallet, network) {
+async function guessPath(hardware, wallet, network) {
   let target;
 
   assert(hardware, 'must pass hardware');
