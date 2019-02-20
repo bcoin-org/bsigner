@@ -11,12 +11,7 @@ const {HDPublicKey,TX} = require('bcoin');
 const {opcodes} = require('bcoin/lib/script/common');
 
 const {vendors,bip44,parsePath,sleep} = require('./common');
-
 const {Path} = require('./path');
-
-const {promisify} = require('util');
-const child_process = require('child_process');
-const exec = promisify(child_process.exec);
 
 /*
  * Hardware Class
@@ -87,10 +82,6 @@ class Hardware {
           const debug = this.logLevel === 'debug';
           // TODO: falsy debug for now, its overwhelming
 
-          // TODO: enumerate to make sure one is connected
-          this.device = true;
-
-          /*
           const list = new trezor.DeviceList({ debug: this.trezordDebug });
 
           list.on('connect', device => {
@@ -116,7 +107,6 @@ class Hardware {
           if (!this.device)
             throw new Error('no Trezor device detected');
 
-          */
           this.initialized = true;
           break;
         }
@@ -210,22 +200,7 @@ class Hardware {
         return await this.device.getPublicKey(path);
       }
       case vendors.TREZOR: {
-
-        // TEMPORARY HACKS
-        const pythonPath = '/Users/marktyneway/python/trezor-signing/bin/python';
-        const filename = '/Users/marktyneway/Projects/github.com/tynes/trezor-signing/main.py';
-
-        const { stdout, stderr, error } = await exec(`${pythonPath} ${filename} get_public_key --path="${path}"`)
-
-        const node = JSON.parse(stdout);
-
-        return HDPublicKey.fromOptions({
-          depth: node.depth,
-          childIndex: node.childIndex,
-          chainCode: Buffer.from(node.chainCode, 'hex'),
-          publicKey: Buffer.from(node.publicKey, 'hex'),
-          parentFingerPrint: node.parentFingerPrint,
-        });
+        throw new Error('temporarily unsupported');
       }
       default:
         return null;
@@ -246,13 +221,11 @@ class Hardware {
 
     // trezor only works with main and testnet
     // because it relies on their bitcore
-    /*
     if (this.vendor === vendors.TREZOR) {
       if (this.network.type === 'regtest' || this.network.type === 'simnet') {
         throw new Error(`unsupported vendor ${this.vendor} with network ${this.network}`);
       }
     }
-    */
 
     const inputTXs = options.inputTXs || [];
     const coins = options.coins || [];
@@ -328,15 +301,6 @@ class Hardware {
 
         const lockTime = tx.locktime;
 
-        // TEMPORARY HACKS
-        const pythonPath = '/Users/marktyneway/python/trezor-signing/bin/python';
-        const filename = '/Users/marktyneway/Projects/github.com/tynes/trezor-signing/main.py';
-
-        const json = {};
-
-        const { stdout, stderr, error } = await exec(`${pythonPath} ${filename} sign_tx --json=${json}`)
-
-        /*
         const response = await this.device.waitForSessionAndRun(async session => {
           // inputs, outputs, txs?, coinType
           return await session.signTx(trezorInputs, trezorOutputs, refTXs, network, lockTime);
@@ -352,7 +316,6 @@ class Hardware {
         const transaction = TX.fromRaw(hex, 'hex');
 
         return transaction;
-        */
       }
     }
   }
