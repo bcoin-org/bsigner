@@ -16,7 +16,18 @@ const {Path} = require('../src/path');
 class CLI {
   constructor() {
     this.config = new Config('hardwarelib', {
-      alias: {},
+      alias: {
+        n: 'network',
+        v: 'vendor',
+        w: 'wallet',
+        r: 'recipient',
+        k: 'apiKey',
+        a: 'account',
+        h: 'httphost',
+        p: 'httpport',
+        s: 'ssl',
+        uri: 'url',
+      },
     });
 
     this.config.load({
@@ -29,7 +40,7 @@ class CLI {
   }
 
   async open() {
-    this.logger = new blgr(this.config.str('loglevel', 'debug'));
+    this.logger = new blgr(this.config.str('loglevel', 'info'));
     await this.logger.open();
 
     if (this.config.has('help')) {
@@ -48,11 +59,17 @@ class CLI {
     this.hardware = Hardware.fromOptions({
       vendor: this.config.str('vendor'),
       retry: this.config.bool('retry', true),
-      logger: this.logger,
+      logger: this.logger.context('hardware'),
       network: network,
     });
 
     await this.hardware.initialize();
+
+    /*
+     * TODO: way to specify arbitrary
+     * remote wallet and node at
+     * different hosts
+     */
 
     this.client = new WalletClient({
       network: network.type,
@@ -67,15 +84,24 @@ class CLI {
       network: network.type,
       port: network.rpcPort,
       apiKey: this.config.str('api-key'),
+      host: this.config.str('http-host'),
+      url: this.config.str('url'),
+      ssl: this.config.bool('ssl'),
     });
+
+    // create output object
+    let out = {
+      vendor: this.config.str('vendor'),
+      network: network.type,
+      wallet: this.config.str('wallet'),
+    };
 
     // for now, restrict to spending from a single account
     // because you cannot trust the account index returned
     // from wallet.getKey in all cases
-
     const account = this.config.str('account', 'default');
+    out.account = account;
 
-    // TODO: determine sane default values
     const tx = await this.wallet.createTX({
       rate: this.config.uint('rate', 1e3),
       sign: false,
@@ -87,10 +113,11 @@ class CLI {
       ],
     });
 
-    const { coins, inputTXs, paths, mtx } = await prepareSign({
+    const {coins,inputTXs,paths,mtx} = await prepareSign({
       tx: tx,
       wallet: this.wallet,
       account,
+      network: network,
     });
 
     const signed = await this.hardware.signTransaction(mtx, {
@@ -102,19 +129,22 @@ class CLI {
     if (!signed)
       throw new Error('problem signing transaction');
 
-    // TODO: figure out why verify fails even
-    // though it creates valid transactions
-    // assert(signed.verify(), 'invalid transaction');
+    assert(signed.verify(), 'invalid transaction');
+    out.valid = true;
 
+    out.broadcast = this.config.bool('broadcast', true);
     if (this.config.bool('broadcast', true)) {
       const hex = signed.toRaw().toString('hex');
+      out.hex = hex;
       const response = await this.node.broadcast(hex);
 
       if (!response.success)
         throw new Error('transaction rejected by node');
 
-      this.logger.info('successful transaction: %s', signed.txid());
+      out.response = response;
     }
+
+    console.log(JSON.stringify(out, null, 2));
   }
 
   async destroy() {
@@ -156,7 +186,7 @@ class CLI {
 
     // hard coded to use default fallback
     if (!this.config.has('account'))
-      this.logger.warning('using account default');
+      this.logger.debug('using account default');
 
     // TODO: smarter parsing around btc <--> sats
     if (!this.config.has('value')) {
@@ -169,7 +199,22 @@ class CLI {
 
   help(msg = '') {
     return msg + '\n' +
-      'sign.js - sign transactions using trezor and ledger'
+      'sign.js - sign transactions using trezor and ledger\n' +
+      '  --network     [-n]            - one of main,testnet,regtest,simnet\n' +
+      '  --vendor      [-v]            - signing vendor to use\n' +
+      '  --wallet      [-w]            - bcoin wallet id to use\n' +
+      '  --account     [-a] (=default) - bcoin account id to use\n' +
+      '  --recipient   [-r]            - bitcoin address to spend to\n' +
+      '  --value                       - value in transaction output\n' +
+      '  --apiKey      [-k]            - bclient api key\n' +
+      '  --passphrase                  - wallet passphrase\n' +
+      '  --url         [-u]            - wallet node url\n' +
+      '  --ssl         [-s]            - connect to wallet node over ssl\n' +
+      '  --http-host   [-h]            - wallet node http host\n' +
+      '  --http-port   [-p]            - wallet node http port\n' +
+      '  --log-level                   - log level\n' +
+      '  --config                      - path to config file\n' +
+      '';
   }
 }
 
