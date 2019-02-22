@@ -29,8 +29,7 @@ const bip44 = {
 // (1 << 31) >>> 0
 
 /*
- * harden a number
- * assert that it is not a hardened string
+ * harden an index
  */
 function harden(value) {
   if (typeof value === 'string') {
@@ -143,46 +142,10 @@ function sleep(time) {
   });
 }
 
-async function guessPath(hardware, wallet, network) {
-  let target;
-
-  assert(hardware, 'must pass hardware');
-  assert(wallet, 'must pass wallet');
-  // fetch wallet info - this was changed,
-  // does it need to be updated to merge
-  // accountKey and keys?
-  const info = await wallet.getAccount(true);
-  if (!info)
-    throw new Error('could not fetch account info');
-
-  // create a set of the keys
-  const keys = new Set(info.keys);
-
-  // iterate over the keys and parse a path
-  // from each of them, get the key at that
-  // path from the local device and then
-  // check the equality to determine the path
-  // to use
-  for (const key of keys.values()) {
-    const path = Path.fromAccountPublicKey(key);
-    const xkey = await options.hardware.getPublicKey(path);
-    if (keys.has(xkey.xpubkey(network))) {
-      target = key;
-      break;
-    }
-  }
-
-  if (target)
-    return Path.fromAccountPublicKey(target);
-
-  return target;
-}
-
 exports.bip44 = bip44;
 exports.vendors = vendors;
 exports.hash = hash;
 exports.parsePath = parsePath;
 exports.sleep = sleep;
 exports.HDVersionBytes = HDVersionBytes;
-exports.guessPath = guessPath;
 exports.harden = harden;
