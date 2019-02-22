@@ -1,8 +1,9 @@
-const {parsePath,bip44,HDVersionBytes,harden} = require('./common');
-const assert = require('bsert');
-const {base58} = require('bstring');
 const {HDPublicKey} = require('bcoin');
+const {base58} = require('bstring');
+const assert = require('bsert');
 const inspect = Symbol.for('nodejs.util.inspect.custom');
+
+const {parsePath,bip44,HDVersionBytes,harden} = require('./common');
 
 /*
  * Path class for handling bip44 paths
@@ -290,6 +291,8 @@ class Path {
 
 // helper functions for parsing fromOptions
 function isOption(option) {
+  if (option === null)
+    return false;
   if (typeof option === 'object' && typeof option.index === 'number')
     return true;
   return false;
