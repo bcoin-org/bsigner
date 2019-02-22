@@ -1,4 +1,4 @@
-const {MTX,TX,Coin} = require('bcoin');
+const {MTX,TX,Coin,Network} = require('bcoin');
 const assert = require('bsert');
 const {hash} = require('./common');
 const {Path} = require('./path');
@@ -15,7 +15,7 @@ const {Path} = require('./path');
  */
 async function generateToken(hardware, path, enc) {
   if (!path)
-    path = Path.fromList([44,0,0], true);
+    throw new Error('must provide a path');
   const hdpubkey = await hardware.getPublicKey(path);
   const token = hash(hdpubkey.publicKey);
   if (enc === 'hex')
@@ -34,6 +34,7 @@ async function generateToken(hardware, path, enc) {
  * @param {bclient#WalletClient#wallet} - options.wallet
  * @param {[]libsigner#Path?} - options.paths
  * @param {libsigner#Path?} - options.path
+ * @param {bcoin#Network|String} - options.network
  * @returns {Object}
  */
 async function prepareSign(options) {
@@ -45,10 +46,21 @@ async function prepareSign(options) {
   }
 
   const {wallet} = options;
-  let {tx,paths,path} = options;
+  let {tx,paths,path,network} = options;
 
   assert(tx, 'must pass tx')
   assert(wallet, 'must pass wallet client');
+  assert(network, 'must pass network');
+
+  // handle both bcoin#Network and string
+  if (network.type)
+    network = network.type;
+  // this will cause getAddress to render the
+  // proper address below since doesn't
+  // take a network argument
+  // this will break unless bcoin is
+  // a peer dependency
+  Network.set(network);
 
   // must use fromJSON to build
   // the bcoin.CoinView
@@ -61,6 +73,7 @@ async function prepareSign(options) {
   if (!paths) {
     if (!path) {
       // if path not passed, try to assume path
+      assert(options.account, 'must pass account');
       const accountInfo = await wallet.getAccount(options.account);
       if (!accountInfo)
         throw new Error('problem fetching account info');
@@ -120,14 +133,14 @@ async function prepareSign(options) {
  * @param {libsigner#Path} - options.path
  * @returns {Object}
  */
-function prepareSignMultisig(options) {
-  const {pmtx,path} = options;
+async function prepareSignMultisig(options) {
+  const {pmtx,wallet,hardware} = options;
+  let {network,path} = options;
 
   assert(pmtx.tx, 'must pass tx');
   assert(pmtx.paths, 'must pass paths');
   assert(pmtx.scripts, 'must pass scripts');
   assert(pmtx.txs, 'must pass txs');
-  assert(Path.isPath(path));
 
   const out = {
     paths: [],
@@ -135,6 +148,8 @@ function prepareSignMultisig(options) {
     coins: [],
     scripts: [],
   }
+
+  assert(Path.isPath(path), 'must pass Path instance');
 
   const mtx = MTX.fromJSON(pmtx.tx);
 
@@ -161,7 +176,51 @@ function prepareSignMultisig(options) {
   }
 }
 
+/*
+ * attempt to guess the path by brute forcing
+ * public key derivation paths
+ * this will fail if multiple cosigners are on the same device
+ * because it greedily stops at the first match
+ * its possible to make it smarter by searching bip48/84 as well
+ *
+ * @param {libsigner#Hardware}
+ * @param {bclient#WalletClient#wallet}
+ * @param {bcoin#Network|String}
+ * @returns {libsigner#Path}
+ */
+async function guessPath(hardware, wallet, network) {
+  let target;
+
+  assert(hardware, 'must pass hardware');
+  assert(wallet, 'must pass wallet');
+  const info = await wallet.getAccount();
+  if (!info)
+    throw new Error('could not fetch account info');
+
+  // create a set of the keys
+  const keys = new Set([info.accountKey, ...info.keys]);
+
+  // iterate over the keys and parse a path
+  // from each of them, get the key at that
+  // path from the local device and then
+  // check the equality to determine the path to use
+  for (const key of keys.values()) {
+    const path = Path.fromAccountPublicKey(key);
+    const xkey = await hardware.getPublicKey(path);
+    if (keys.has(xkey.xpubkey(network))) {
+      target = key;
+      break;
+    }
+  }
+
+  if (target)
+    return Path.fromAccountPublicKey(target);
+
+  return target;
+}
+
 exports.prepareSign = prepareSign;
 exports.prepareSignMultisig = prepareSignMultisig;
 exports.generateToken = generateToken;
+exports.guessPath = guessPath;
 
