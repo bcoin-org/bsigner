@@ -9,20 +9,26 @@ const blgr = require('blgr');
 const assert = require('bsert');
 const {WalletClient} = require('bclient');
 
-const {guessPath} = require('../src/common');
 const {Path} = require('../src/path');
 const {Hardware} = require('../src/hardware');
-const {prepareSignMultisig,generateToken} = require('../src/app');
+const {prepareSignMultisig,generateToken,guessPath} = require('../src/app');
 
 /*
- * TODO: if this.config is mutated, then things will break
- * add json flag for great cli foo
+ * Manage Multisig wallets with bcoin and watch only wallets
+ *
  */
 
 class CLI {
   constructor() {
     this.config = new Config('harwarelib', {
-      alias: {},
+      alias: {
+        n: 'network',
+        v: 'vendor',
+        w: 'wallet',
+        i: 'index',
+        c: 'cosignername',
+        j: 'joinkey',
+      },
     });
 
     this.config.load({
@@ -64,26 +70,36 @@ class CLI {
     else if (this.config.has('index'))
       this.path = Path.fromOptions({
         network: network.type,
-        purpose: this.config.uint('purpose', 44),
-        account: this.config.uint('index'),
+        purpose: this.config.str('purpose', '44h'),
+        account: this.config.str('index'),
         // allow for custom coin paths
         coin: this.config.uint('coin'),
       });
+
+    // create output object
+    let out = {
+      message: '',
+      path: this.path ? this.path.toString() : null,
+      vendor: this.config.str('vendor'),
+      network: network.type,
+    };
 
     /*
      * get multisig wallet info
      */
     if (this.config.has('get-info')) {
-      const info = await this.wallet.getInfo(true);
-      if (!info)
+      const walletInfo = await this.wallet.getInfo(true);
+      if (!walletInfo)
         throw new Error('could not fetch wallet info');
+      const accountInfo = await this.wallet.getAccount('default');
+      if (!accountInfo)
+        throw new Error('could not fetch account info');
 
-      this.logger.info('wallet id: %s', info.id);
-      this.logger.info('initialized: %s', info.initialized);
-      if (info.initialized) {
-        this.logger.info('receive address: %s', info.account.receiveAddress);
-        this.logger.info('balance: %s', info.account.balance.confirmed);
-      }
+      out.reponse = {
+        wallet: walletInfo,
+        account: accountInfo,
+      };
+      console.log(JSON.stringify(out, null, 2));
       process.exit(0);
     }
 
@@ -93,11 +109,8 @@ class CLI {
     if (this.config.has('get-proposals')) {
       const proposals = await this.wallet.getProposals(true);
 
-      if (!proposals || proposals.length === 0)
-        this.logger.info('no proposals found');
-
-      for (const proposal of proposals)
-        this.logger.info('\n%o', proposal);
+      out.response = proposals;
+      console.log(JSON.stringify(out, null, 2));
       process.exit();
     }
 
@@ -108,7 +121,7 @@ class CLI {
       vendor: this.config.str('vendor'),
       retry: this.config.bool('retry', true),
       network: network,
-      logger: this.logger,
+      logger: this.logger.context('hardware'),
     });
 
     await this.hardware.initialize();
@@ -121,39 +134,42 @@ class CLI {
 
       const hdpubkey = await this.hardware.getPublicKey(this.path);
 
+      // token in POST body will not overwrite client token
       const response = await this.client.createWallet(this.config.str('wallet'), {
         witness: this.config.bool('segwit', false),
-        xpub: hdpubkey.xpubkey(network.type),
+        accountKey: hdpubkey.xpubkey(network.type),
         watchOnly: true,
         m: this.config.uint('m'),
         n: this.config.uint('n'),
         cosignerName: this.config.str('cosigner-name'),
         cosignerPath: this.path.toString(),
-        cosignerToken: cosignerToken.toString('hex'),
+        token: cosignerToken.toString('hex'),
       });
 
-      this.logger.info('wallet created: %s - %s of %s', response.id, response.m, response.n);
-      this.logger.info('join key: %s', response.joinKey);
+      out.path = this.path.toString();
+      out.response = response;
 
-      const cosigner = response.cosigners.find(c => c.name === this.config.str('cosigner-name'));
-      this.logger.info('cosigner name/token: %s/%s', cosigner.name, cosigner.token);
+      console.log(JSON.stringify(out, null, 2));
+      process.exit(0);
     }
 
     if (this.config.has('join-wallet')) {
       const hdpubkey = await this.hardware.getPublicKey(this.path.toList());
       const cosignerToken = await generateToken(this.hardware, this.path);
 
-      const join = await this.wallet.joinWallet({
+      const wallet = this.config.str('wallet');
+
+      const response = await this.client.joinWallet(wallet, {
         cosignerName: this.config.str('cosigner-name'),
         cosignerPath: this.path.toString(),
         joinKey: this.config.str('join-key'),
-        xpub: hdpubkey.xpubkey(network.type),
-        cosignerToken: cosignerToken.toString('hex'),
+        accountKey: hdpubkey.xpubkey(network.type),
+        token: cosignerToken.toString('hex'),
       });
 
-      this.logger.info('wallet joined: %s - initialized: %s', join.id, join.initialized);
-      const cosigner = join.cosigners.find(c => c.name === this.config.str('cosigner-name'));
-      this.logger.info('cosigner name/token: %s/%s', cosigner.name, cosigner.token);
+      out.response = response;
+      console.log(JSON.stringify(out, null, 2));
+      process.exit(0);
     }
 
     /*
@@ -179,36 +195,43 @@ class CLI {
         ],
       });
 
-      this.logger.info('proposal id: %s', proposal.id);
-      this.logger.info('%s', proposal.statusMessage);
+      out.response = proposal;
+      console.log(JSON.stringify(out, null, 2));
+      process.exit(0);
     }
 
 
     if (this.config.has('approve-proposal')) {
-
-      // think about moving this into the function...
       const pid = this.config.uint('proposal-id');
-      const ptx = await this.wallet.getProposalMTX(pid, {
-        paths: true,
-        scripts: true,
-      });
-
-      if (!ptx.tx)
-        throw new Error('no proposal to approve');
-
       // response is {tx,paths,scripts,txs}
-      const pmtx = await wallet.getProposalMTX(proposal.id, {
+      const pmtx = await this.wallet.getProposalMTX(pid, {
         paths: true,
         scripts: true,
         txs: true,
       });
 
-      const {paths,inputTXs,coins,scripts,mtx} = prepareSignMultisig({
+      if (!pmtx)
+        throw new Error('make sure there is a proposal first');
+
+      if (!pmtx.tx)
+        throw new Error('no proposal to approve');
+
+      /*
+       * if no path explicitly
+       * passed, use the guessed path
+       */
+      if (!this.path)
+        this.path = await guessPath(this.hardware, this.wallet, network);
+
+      const {paths,inputTXs,coins,scripts,mtx} = await prepareSignMultisig({
         pmtx,
+        network,
+        path: this.path,
         wallet: this.wallet,
+        hardware: this.hardware,
       });
 
-      const signatures = await hardware.getSignature(mtx, {
+      const signatures = await this.hardware.getSignature(mtx, {
         paths,
         inputTXs,
         coins,
@@ -216,41 +239,29 @@ class CLI {
         enc: 'hex',
       });
 
-      /*
-       * return index from prepareSign if index not provided
-       * so that the cosigner token could be generated using it
-       * brute force search for proper key
-       */
-
-      if (!signature)
+      if (!signatures)
         throw new Error('problem signing transaction');
 
-      // if no path or index passed, try to guess the path from the keys
-      if (!this.path) {
-        const path = guessPath(this.hardware, this.wallet, network.type);
-        if (!path)
-          throw new Error('could not guess path');
-        this.path = path;
-      }
-
       const cosignerToken = await generateToken(this.hardware, this.path);
-
       const wallet = this.client.wallet(this.config.str('wallet'), cosignerToken.toString('hex'));
-      const approval = await wallet.approveProposal(pid, [signature], this.config.bool('broadcase', true));
 
-      this.logger.info('proposal id: %s', proposal.id);
-      this.logger.info('approvals: %s', approval.approvals.length);
-      this.logger.info('%s', approval.statusMessage);
+      const approval = await wallet.approveProposal(pid, signatures, this.config.bool('broadcase', true));
+
+      out.response = approval;
+      out.path = this.path;
+      console.log(JSON.stringify(out, null, 2));
+      process.exit(0);
     }
 
     if (this.config.str('reject-proposal')) {
-
       const cosignerToken = await generateToken(this.hardware, this.path);
 
       const wallet = this.client.wallet(this.config.str('wallet'), cosignerToken.toString('hex'));
       const rejection = await wallet.rejectProposal(this.config.uint('proposal-id'));
 
-      this.logger.info('rejected proposal id: %s', rejection.id);
+      out.response = rejection;
+      console.log(JSON.stringify(out, null, 2));
+      process.exit(0);
     }
   }
 
@@ -314,6 +325,11 @@ class CLI {
         msg += 'must pass cosigner name\n';
         valid = false;
       }
+
+      if (!this.config.has('index') && !this.config.has('path')) {
+        msg += 'must pass index or path\n';
+        valid = false;
+      }
     }
 
     if (this.config.has('join-wallet')) {
@@ -323,6 +339,10 @@ class CLI {
       }
       if (!this.config.has('wallet')) {
         msg += 'must pass wallet\n';
+        valid = false;
+      }
+      if (!this.config.has('cosigner-name')) {
+        msg += 'must pass cosigner name\n';
         valid = false;
       }
     }
@@ -370,32 +390,33 @@ class CLI {
   help(msg = '') {
     return msg +'\n' +
       'multisig.js - manage multisig transactions using trezor and ledger\n' +
-      // TODO: '  --json             - output in json\n' +
-      '  --vendor           - ledger or trezor\n' +
-      '  --get-info         - get multisig wallet info\n' +
-      '    --wallet         - wallet id\n' +
-      '    --token\n' +
-      '  --get-proposals    - list wallet proposals\n' +
-      '    --wallet         - wallet id\n' +
-      '  --create-wallet    - create multisig wallet\n' +
-      '    --wallet         - wallet id\n' +
-      '    --m              - threshold to spend\n' +
-      '    --n              - total number of cosigners\n' +
-      '    --cosigner-name  - cosigner creating wallet\n' +
-      '    --index          - index of hd public key to use\n' +
-      '  --join-wallet      - create multisig wallet\n' +
-      '    --join-key       - authentication key to join with\n' +
-      '    --index          - index of hd public key to use\n' +
-      '    --cosinger-name  - cosigner joining wallet\n' +
-      '  --create-proposal  -\n' +
-      '    --wallet         - wallet id\n' +
-      '    --memo           - string description\n' +
-      '    --value          - amount in output\n' +
-      '    --recipient      - base58/bech32 encoded address\n' +
-      '    --token          - optional\n' +
+      '  --vendor          [-v]   - ledger or trezor\n' +
+      '  --network         [-n]   - ledger or trezor\n' +
+      '  --get-info               - get multisig wallet info\n' +
+      '    --wallet        [-w]   - wallet id\n' +
+      '    --token                - authentication token\n' +
+      '  --get-proposals\n'+
+      '    --wallet        [-w]   - wallet id\n' +
+      '  --create-wallet          - create multisig wallet\n' +
+      '    --wallet        [-w]   - wallet id\n' +
+      '    --m                    - threshold to spend\n' +
+      '    --n                    - total number of cosigners\n' +
+      '    --cosigner-name  [-c]  - cosigner creating wallet\n' +
+      '    --index          [-i]  - index of hd public key to use\n' +
+      '    --path                 - bip44 path\n' +
+      '  --join-wallet            - create multisig wallet\n' +
+      '    --join-key       [-j]  - authentication key to join with\n' +
+      '    --index          [-i]  - index of hd public key to use\n' +
+      '    --cosinger-name  [-c]  - cosigner joining wallet\n' +
+      '  --create-proposal\n' +
+      '    --wallet         [-w]  - wallet id\n' +
+      '    --memo                 - string description of proposal\n' +
+      '    --value                - amount in transaction output\n' +
+      '    --recipient            - base58/bech32 encoded address\n' +
+      '    --token                - optional\n' +
       '  --approve-proposal\n' +
-      '    --proposal-id    - integer proposal id\n' +
-      '    --index          - bip44 account index\n' +
+      '    --proposal-id          - integer proposal id, use --get-proposals\n' +
+      '    --index         [-i]   - bip44 account index\n' +
       '';
   }
 }
