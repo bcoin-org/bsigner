@@ -16,18 +16,21 @@ const {Path} = require('../src/path');
  * TODO:
  * - document all cli flags
  * - add retoken
- * - make client work against remote servers
  */
 
 class CLI {
   constructor() {
-    // TODO: think about good alias usage
     this.config = new Config('hardwarelib', {
       alias: {
-        h: 'help',
         i: 'index',
         n: 'network',
         v: 'vendor',
+        w: 'wallet',
+        k: 'apiKey',
+        a: 'account',
+        u: 'url',
+        h: 'httphost',
+        p: 'httpport',
       },
     });
 
@@ -40,7 +43,6 @@ class CLI {
       this.config.open(this.config.path('config'));
   }
 
-  // TODO: default to outputting json
   async open() {
     this.logger = new blgr(this.config.str('loglevel', 'info'));
     await this.logger.open();
@@ -57,6 +59,7 @@ class CLI {
     }
 
     const network = Network.get(this.config.str('network'));
+    this.logger.debug('using network: %s', network.type);
 
     this.client = new WalletClient({
       network: network.type,
@@ -78,6 +81,12 @@ class CLI {
 
     await this.hardware.initialize();
 
+    // create output object
+    let out = {
+      network: network.type,
+      vendor: this.config.str('vendor'),
+    };
+
     if (this.config.has('path'))
       this.path = Path.fromString(this.config.str('path'));
     else {
@@ -97,15 +106,17 @@ class CLI {
       });
     }
 
-    this.logger.info('using path: %s', this.path);
+    out.path = this.path.toString();
 
     const hdpubkey = await this.hardware.getPublicKey(this.path);
 
     if (!hdpubkey)
       throw new Error('problem getting public key');
 
-    this.logger.info('extended public key:\n       %s', hdpubkey.xpubkey(network.type));
-    this.logger.debug('hex public key:\n       %s', hdpubkey.publicKey.toString('hex'));
+    this.xkey = hdpubkey.xpubkey(network.type);
+
+    out.xkey = this.xkey;
+    out.publicKey = hdpubkey.publicKey.toString('hex');
 
     {
       const receivehdpubkey = hdpubkey.derive(0).derive(0);
@@ -115,35 +126,43 @@ class CLI {
       let legacy = legacyKeyring.getAddress('base58', network.type);
       let segwit = segwitKeyring.getAddress('string', network.type);
 
-      this.logger.info('legacy receive address:\n       %s', legacy);
-      this.logger.info('segwit receive address:\n       %s', segwit);
+      out.receive = {
+        legacy,
+        segwit,
+      }
     }
 
     if (this.config.has('create-wallet')) {
       const wallet = this.config.str('wallet');
 
+      const witness = this.config.bool('witness', false);
+
       const response = await this.client.createWallet(wallet, {
-        witness: this.config.bool('witness', false),
-        accountKey: hdpubkey.xpubkey(network.type),
+        witness: witness,
+        accountKey: this.xkey,
         watchOnly: true,
       });
 
-      this.logger.info('success: created wallet %s', response.id);
-      this.logger.info('token: %s', response.token);
+      out.response = response;
     }
 
     if (this.config.has('create-account')) {
       const account = this.config.str('account');
 
+      const witness = this.config.bool('witness', false);
+
       const response = await this.wallet.createAccount(account, {
-        witness: this.config.bool('witness', false),
+        witness: witness,
         token: this.config.str('token'),
         accountKey: hdpubkey.xpubkey(network.type),
         watchOnly: true,
       });
 
-      this.logger.info('success: created account %s in wallet %s', response.name, this.config.str('wallet'));
+      out.wallet = this.config.str('wallet');
+      out.response = response;
     }
+
+    console.log(JSON.stringify(out, null, 2));
   }
 
   async destroy() {
@@ -215,19 +234,24 @@ class CLI {
   // TODO: finish and document
   help(msg = '') {
     return msg + '\n' +
-      'pubkeys.js - manage hd public keys using ledger or trezor' +
-      '\n' +
-      '  --path                - HD node derivation path\n' +
-      '  --index               - bip44 account index\n' +
-      '  --vendor              - key manager, ledger or trezor\n' +
-      '  --network             - main, testnet, regtest or simnet\n' +
-      '  --create-wallet       - create bcoin wallet using derived pubkey\n' +
-      '    --wallet            - name of wallet to create\n' +
-      '    --api-key           - optional bcoin api key\n' +
-      '  --create-account      - create bcoin account using derived pubkey\n' +
-      '    --wallet            - name of wallet to create account in\n' +
-      '    --account           - name of account to create\n' +
-      '    --api-key           - optional bcoin api key\n' +
+      'pubkeys.js - manage hd public keys with bcoin watch only wallets\n' +
+      '  --config               - path to config file\n' +
+      '  --log-level            - log level\n' +
+      '  --path                 - HD node derivation path\n' +
+      '  --index         [-i]   - bip44 account index\n' +
+      '  --vendor        [-v]   - key manager, ledger or trezor\n' +
+      '  --network       [-n]   - main, testnet, regtest or simnet\n' +
+      '  --url           [-u]   - wallet node url\n' +
+      '  --ssl           [-s]   - connect to wallet node over ssl\n' +
+      '  --http-host     [-h]   - wallet node http host\n' +
+      '  --http-port     [-p]   - wallet node http port\n' +
+      '  --create-wallet        - create bcoin wallet using derived pubkey\n' +
+      '    --wallet      [-w]   - name of wallet to create\n' +
+      '    --api-key     [-a]   - optional bcoin api key\n' +
+      '  --create-account       - create bcoin account using derived pubkey\n' +
+      '    --wallet      [-w]   - name of wallet to create account in\n' +
+      '    --account     [-a]   - name of account to create\n' +
+      '    --api-key     [-k]   - optional bcoin api key\n' +
       '';
   }
 }
