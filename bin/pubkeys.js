@@ -6,16 +6,19 @@ const {Network,KeyRing} = require('bcoin');
 const {WalletClient} = require('bclient');
 const Config = require('bcfg');
 const blgr = require('blgr');
+const assert = require('bsert');
 
 const {Hardware} = require('../src/hardware');
 const {bip44} = require('../src/common');
 const {Path} = require('../src/path');
 
 /*
- * extract public keys and make wallets/accounts
- * TODO:
- * - document all cli flags
- * - add retoken
+ * pubkeys.js
+ *
+ * derive legacy and segwit addresses
+ * using bcoin and print in a json format
+ * can automate the creation of watch only
+ * bcoin wallets and accounts
  */
 
 class CLI {
@@ -118,17 +121,74 @@ class CLI {
     out.xkey = this.xkey;
     out.publicKey = hdpubkey.publicKey.toString('hex');
 
+
+    /*
+     * derive the receive addresses
+     * the branch is 0 and the index increments
+     * so that the path looks like
+     * m/{44,48,84}/{0,1}/{x}/0/{i}
+     * where x is the account index
+     * and branch is depth 4
+     * and index is depth 5
+     */
     {
-      const receivehdpubkey = hdpubkey.derive(0).derive(0);
-      const legacyKeyring = KeyRing.fromPublic(receivehdpubkey.publicKey);
-      const segwitKeyring = KeyRing.fromPublic(receivehdpubkey.publicKey);
-      segwitKeyring.witness = true;
-      let legacy = legacyKeyring.getAddress('base58', network.type);
-      let segwit = segwitKeyring.getAddress('string', network.type);
+      const legacyAddresses = [];
+      const segwitAddresses = [];
+      for (let i = 0; i < this.config.str('receive-depth', 3); i++) {
+
+        const legacy = toAddress(hdpubkey, {
+          network: network,
+          branch: 0,
+          index: i,
+        });
+
+        const segwit = toAddress(hdpubkey, {
+          network: network,
+          branch: 0,
+          index: i,
+          witness: true,
+        });
+
+        legacyAddresses.push(legacy);
+        segwitAddresses.push(segwit);
+      }
 
       out.receive = {
-        legacy,
-        segwit,
+        legacy: legacyAddresses,
+        segwit: segwitAddresses,
+      }
+    }
+
+    /*
+     * derive the change addresses
+     * the branch is always set to 1
+     * when deriving change addresses
+     */
+    {
+      const legacyAddresses = [];
+      const segwitAddresses = [];
+      for (let i = 0; i < this.config.str('change-depth', 3); i++) {
+
+        const legacy = toAddress(hdpubkey, {
+          network: network,
+          branch: 1,
+          index: i,
+        });
+
+        const segwit = toAddress(hdpubkey, {
+          network: network,
+          branch: 1,
+          index: i,
+          witness: true,
+        });
+
+        legacyAddresses.push(legacy);
+        segwitAddresses.push(segwit);
+      }
+
+      out.change = {
+        legacy: legacyAddresses,
+        segwit: segwitAddresses,
       }
     }
 
@@ -236,6 +296,8 @@ class CLI {
     return msg + '\n' +
       'pubkeys.js - manage hd public keys with bcoin watch only wallets\n' +
       '  --config               - path to config file\n' +
+      '  --receive-depth        - number of receive addresses to render\n' +
+      '  --change-depth         - number of change addresses to render\n' +
       '  --log-level            - log level\n' +
       '  --path                 - HD node derivation path\n' +
       '  --index         [-i]   - bip44 account index\n' +
@@ -254,6 +316,40 @@ class CLI {
       '    --api-key     [-k]   - optional bcoin api key\n' +
       '';
   }
+}
+
+/*
+ * Convert an account level extended public
+ * key to an address. Need the network to render
+ * the address correctly as well as the branch
+ * and index to derive the correct public key.
+ * Can optionally derive a segwit address
+ *
+ * @param {bcoin#HDPublicKey} - hdpubkey
+ * @param {object} - options
+ * @param {bcoin#Network|String} - options.network
+ * @param {Number} - options.branch
+ * @param {Number} - options.index
+ * @param {Boolean?} - options.witness
+ */
+function toAddress(hdpubkey, options) {
+  assert(hdpubkey.depth === 3, 'must pass account level extended key');
+  const {branch,index} = options;
+  let {network} = options;
+  // allow bcoin#Network or string
+  if (network.type)
+    network = network.type;
+  // sanity checks, dont want to derive wrong address
+  assert(typeof network === 'string');
+  assert(typeof branch === 'number');
+  assert(typeof index === 'number');
+
+  const addresspubkey = hdpubkey.derive(branch).derive(index);
+
+  let keyring = KeyRing.fromPublic(addresspubkey.publicKey);
+  keyring.witness = options.witness;
+
+  return keyring.getAddress('string', network);
 }
 
 (async () => {

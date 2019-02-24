@@ -199,17 +199,41 @@ console.log(myTXPath.toList());
 Quickly pull [bip 32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#serialization-format)
 extended public keys from your hardware devices
 
+Note that bcoin@1.x.x uses the extended key prefix `rpub` for regtest
+extended account public keys (`m/44'/1'/{i}'`), the 2.x.x release
+will use `tpub` and be compatible with bitcoind.
+
 ```bash
 $ ./bin/pubkeys.js -v ledger -n regtest -i 0h
 {
-  "message": "success",
   "network": "regtest",
+  "vendor": "ledger",
   "path": "m'/44'/1'/0'",
-  "xkey": "tpubDC2Q4xK4XH72GzfN8XLxwqyAmc71fJvWYQiwUGpTShBKRv5F6E9NtWev2ogdxB4zggRJ9BzpmJhWHsDn6vD5tJDDYHa1yoHY7JeCgenb32D",
+  "xkey": "rpubKBA5VcKMuu9dL73dKJSAMNx8FkPAURAsJUr2mTTJWgAGQxuwB9Nj3VHCzwEtqUQhUWnEJSHFzGGxrzTgdYQL46fekWEbFeSsruRQn3wDujaC",
   "publicKey": "028b42cd4776376c82791b494155151f56c2d7b471e0c7a526a7ce60dd872e3867",
   "receive": {
-    "legacy": "mkpZhYtJu2r87Js3pDiWJDmPte2NRZ8bJV",
-    "segwit": "bcrt1q8gk5z3dy7zv9ywe7synlrk58elz4hrnegvpv6m"
+    "legacy": [
+      "REaoV1gcgqDSQCkdZpjFZptGnutGEat4DR",
+      "RUaqJ3PnCZPFRcdV4PBYvgmbLjWhqrBKX3",
+      "RGDzkAB4UkUnATjpP2d9AKBxyFGMimaC1r"
+    ],
+    "segwit": [
+      "rb1q8gk5z3dy7zv9ywe7synlrk58elz4hrnearrkd8",
+      "rb1q60qgwr5wzw57cvs0z2qg3yf84g26fs9pjcjacf",
+      "rb1qfshzhu5qdyz94r4kylyrnlerq6mnhw3s9y9e85"
+    ]
+  },
+  "change": {
+    "legacy": [
+      "RBu2VTMz4MnCziyo9tccAkjjFVWkEeMwV1",
+      "RTuXStuGuqQURBGiMGq5zN75W1fg3exBTc",
+      "RGXwdbMLoaVaXFzLifkZLJFND14KcvdyVA"
+    ],
+    "segwit": [
+      "rb1qrjmnjg944su0gc8r3h4ksjuuffqglu7q3yrsyp",
+      "rb1qe3gksfnc76gujkqsxqxh79t9nqe4ervwhgqu2h",
+      "rb1qf7fs76w04gdtwrg6cktw52agqzvdttvzv8k2g5"
+    ]
   }
 }
 ```
@@ -229,12 +253,14 @@ Use the `--help` flag to see in depth details.
 - `-v` - signing vendor, one of ledger or trezor
 
 Lets start by verifying. Grab the first receive address of the first account.
+This address corresponds to `m/44'/1'/0'/0/0`. Using `jq`, it is possible to
+index into the returned list of addresses and they are indexed in ascending order.
 
 ```bash
-$ receive=$(./bin/pubkeys.js -v ledger -i 0h -n regtest | jq -r .receive.legacy)
+$ receive=$(./bin/pubkeys.js -v ledger -i 0h -n regtest | jq -r .receive.legacy[0])
 ```
 
-Now we can create a wallet using the extended public key 44h/0h/0h
+Now we can create a wallet using the extended public key `44h/0h/0h`.
 
 ```bash
 $ ./bin/pubkeys.js -v ledger -i 0h -n regtest -w foo --create-wallet
