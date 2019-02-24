@@ -199,6 +199,10 @@ console.log(myTXPath.toList());
 Quickly pull [bip 32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#serialization-format)
 extended public keys from your hardware devices
 
+Note that bcoin@1.x.x uses the extended key prefix `rpub` for regtest
+extended account public keys (`m/44'/1'/{i}'`), the 2.x.x release
+will use `tpub` and be compatible with bitcoind.
+
 ```bash
 $ ./bin/pubkeys.js -v ledger -n regtest -i 0h
 {
