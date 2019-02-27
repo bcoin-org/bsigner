@@ -1,9 +1,6 @@
 const {Hardware} = require('../lib/libsigner');
-const {sleep} = require('../src/common');
 
 (async () => {
-  let connected = false;
-
   const hardware = Hardware.fromOptions({
     vendor: 'ledger',
     network: 'regtest',
@@ -15,7 +12,6 @@ const {sleep} = require('../src/common');
 
   hardware.on('disconnect', ({vendor,fingerprint}) => {
     console.log(`disconnect - vendor: ${vendor}, fingerprint: ${fingerprint}`);
-    connected = false;
   });
 
   console.log('initializing hardware, please plug in device');
