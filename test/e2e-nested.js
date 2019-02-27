@@ -74,6 +74,7 @@ describe('Nested Signing', function() {
 
   after(async () => {
     await fullNode.close();
+    hardware.close();
   })
 
 
@@ -134,6 +135,7 @@ describe('Nested Signing', function() {
       tx: tx,
       wallet: walletClient.wallet(walletId),
       path,
+      network,
     });
 
     const signed = await hardware.signTransaction(mtx, {
