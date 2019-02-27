@@ -22,6 +22,7 @@
     "bcfg": "^0.1.5",
     "bclient": "^0.1.6",
     "bcoin": "git+https://github.com/bcoin-org/bcoin.git#a2e176d4",
+    "bcrypto": "3.0.1",
     "bledger": "git+https://github.com/bcoin-org/bledger.git",
     "blgr": "^0.1.5",
     "bmultisig": "git+https://github.com/bcoin-org/bmultisig.git",

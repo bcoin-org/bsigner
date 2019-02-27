@@ -8,9 +8,10 @@ const network = require('bcoin/lib/protocol/networks');
  * for the Hardware signer
  */
 const vendors = {
-  LEDGER: 'ledger',
-  TREZOR: 'trezor',
-  LOCAL: 'local',
+  LEDGER: 'LEDGER',
+  TREZOR: 'TREZOR',
+  LOCAL: 'LOCAL',
+  ANY: 'ANY',
 };
 
 const bip44 = {

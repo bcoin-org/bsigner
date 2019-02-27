@@ -44,6 +44,11 @@ const {Hardware,Path} = require('libsigner');
 
 ```
 
+The `Hardware` class is an `eventemitter` and emits on 2 topics.
+`connect` and `disconnect`, an `options` object is passed along
+and has the device fingerprint (defined as the bip174 master public
+key fingerprint) and the device vendor. See `examples/events.js`
+
 Use in conjunction with [bcoin](https://github.com/bcoin-org/bcoin/)
 to sign transactions using the hardware wallet device.
 
@@ -317,6 +322,11 @@ inputs will not work on ledger and trezor hardware
 devices due to their firmware. It is possible
 to craft such transactions with bcoin, so please
 be careful not to do so.
+
+bcoin is pinned to a specific commit `a2e176d4`
+because it is right before a change in the
+regtest keyprefixes, which will break its compatibility
+with `bmultisig`, since it relies on `bcoin@1.0.2`
 
 ## TODO
 

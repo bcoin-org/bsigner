@@ -1,5 +1,6 @@
 'use strict';
 
+const EventEmitter = require('events');
 const trezor = require('trezor.js');
 const bledger = require('bledger')
 const {LedgerBcoin,LedgerTXInput} = bledger;
@@ -9,6 +10,8 @@ const {Lock} = require('bmutex');
 const blgr = require('blgr');
 const {HDPublicKey,TX} = require('bcoin');
 const {opcodes} = require('bcoin/lib/script/common');
+const hash160 = require('bcrypto/lib/hash160');
+const secp256k1 = require('bcrypto/lib/secp256k1');
 
 const {vendors,bip44,parsePath,sleep} = require('./common');
 const {Path} = require('./path');
@@ -20,8 +23,9 @@ const {Path} = require('./path');
  *
  * TODO: implement LOCAL flag
  */
-class Hardware {
+class Hardware extends EventEmitter {
   constructor(options) {
+    super();
 
     this.initialized = false;
     this.logger = new blgr();
@@ -32,6 +36,18 @@ class Hardware {
     this.retries = 0;
     this.network = null;
     this.trezordDebug = false;
+
+    // index devices by path
+    this.devices = {
+      [vendors.LEDGER]: new Map(),
+      [vendors.TREZOR]: new Map(),
+    }
+
+    // index devices by fingerprint
+    this.fingerPrints = new Map();
+
+    // references to each timer
+    this.timers = [];
 
     if (options)
       this.fromOptions(options);
@@ -50,91 +66,224 @@ class Hardware {
 
     try {
       switch (this.vendor) {
-        case vendors.LEDGER: {
-
-          const devices = await Device.getDevices();
-
-          if (devices.length === 0)
-            throw new Error('No Ledger device detected');
-
-          // support only 1 device at a time
-          const device = new Device({
-            device: devices[0],
-            timeout: 1e4,
-          });
-          await device.open();
-
-          // handle both bcoin.Networks type or string
-          const network = this.network.type ? this.network.type : this.network;
-
-          // TODO: handle ledger disconnect
-          this.device = new LedgerBcoin({
-            device,
-            network,
-          });
-
-          this.initialized = true;
-
+        case vendors.ANY:
+          await this.watch(vendors.LEDGER);
           break;
-        }
 
-        case vendors.TREZOR: {
-          const debug = this.logLevel === 'debug';
-          // TODO: falsy debug for now, its overwhelming
-
-          const list = new trezor.DeviceList({ debug: this.trezordDebug });
-
-          list.on('connect', device => {
-            // only support 1 device at a time
-            // TODO: there is a bug here
-            if (this.device) {
-              this.logger.debug('trezor device already connected');
-              return;
-            }
-
-            this.device = device;
-            this.logger.debug('connecting trezor device id: %s', device.features.device_id);
-
-            this.device.on('disconnect', () => {
-              this.logger.debug('disconnecting trezor device id: %s', device.features.device_id);
-              this.device = null;
-            });
-          });
-
-          // HACK: allow events to happen
-          // is this sleep long enough?
-          await sleep(1e3);
-          if (!this.device)
-            throw new Error('no Trezor device detected');
-
-          this.initialized = true;
+        case vendors.LEDGER:
+          await this.watch(vendors.LEDGER);
           break;
-        }
 
-        case vendors.LOCAL: {
+        case vendors.TREZOR:
+          throw new Error('trezor support has been removed temporarily');
+          break;
+
+        case vendors.LOCAL:
           throw new Error('local signing is not available yet');
-        }
+          break;
 
         default:
           throw new Error('unknown vendor type:' + this.vendor);
       }
     } catch (e) {
       this.logger.debug(e.message);
-      if (this.retry && (this.retries < this.retryCount)) {
-        this.retries++;
-        this.logger.debug('retrying attempt %d in %d seconds', this.retries, 10);
-        await sleep(1e4);
-        await this.initialize()
-      }
       throw e;
     }
   }
+
+  /*
+   * recurring loop of checking to see
+   * if new devices have been plugged in
+   * and will connect if no device is connected
+   *
+   */
+  async watch(vendor) {
+    await this.checkDevices(vendor);
+    if (!this.device)
+      this.trySelect({vendor});
+
+    this.timers.push(setInterval(async () => {
+      await this.checkDevices(vendor);
+
+      if (!this.device)
+        this.trySelect({vendor})
+    }, 2000));
+  }
+
+  /*
+   * try to select a device based on the
+   * vendor
+   * TODO: add select by fingerprint support
+   */
+  trySelect({vendor}) {
+    const devices = this.devices[vendor];
+    if (devices.size > 0)
+      this.select({vendor});
+  }
+
+  /*
+   * check the devices to see if there have
+   * been any connected or disconnected,
+   * index the initialized devices and
+   * emit events
+   */
+  async checkDevices(vendor) {
+    switch (vendor) {
+      case vendors.LEDGER:
+        await this.checkLedger();
+        break;
+
+      default:
+        throw new Error(`unknown device vendor: ${vendor}`);
+    }
+  }
+
+  /*
+   * checks for new ledger devices
+   * and emits events, will index
+   * the devices by fingerprint and
+   * by path
+   */
+  async checkLedger() {
+    // returns a list of HIDDeviceInfo
+    // can be uniquely identified by their path
+    const detected = await Device.getDevices();
+    const paths = detected.map(d => d.path);
+
+    // known schema looks like:
+    // path -> { device:ledgerbcoinapp, vendor:'ledger' }
+    const known = this.devices[vendors.LEDGER];
+
+    // remove devices from known that
+    // are no longer connected
+    for (const [k,v] of known) {
+      if (!paths.includes(k)) {
+        await v.device.close();
+        known.delete(k);
+        this.fingerPrints.delete(v.fingerprint);
+
+        // need to set device to null if
+        // currently selected device is disconencted
+        if (v.device.devicePath === k)
+          this.device = null;
+
+        this.emit('disconnect', {
+          vendor: vendors.LEDGER,
+          fingerprint: v.fingerprint,
+        });
+      }
+    }
+
+    // initialize any new devices
+    // index them and emit events
+    for (let d of detected) {
+      if (!(known.has(d.path))) {
+        try {
+          const device = new Device({
+            device: d,
+            timeout: 5000,
+          });
+
+          await device.open();
+
+          const ledgerBcoin = new LedgerBcoin({
+            device,
+            network: this.network,
+          });
+
+          // get the fingerprint so we can index by fingerprint
+          const data = await ledgerBcoin.getPublicKey('M');
+          const compressed = secp256k1.publicKeyConvert(data.publicKey, true);
+          const hash = hash160.digest(compressed);
+          const fp = hash.readUInt32BE(0);
+          ledgerBcoin.fingerprint = fp;
+
+          // set device if its not set
+          // so that it can be used
+          // on the other side of the event
+          if (!this.device)
+            this.device = ledgerBcoin;
+
+          this.emit('connect', {
+            vendor: vendors.LEDGER,
+            fingerprint: fp,
+          });
+
+          known.set(d.path, ledgerBcoin);
+
+          this.fingerPrints.set(fp, {
+            device: ledgerBcoin,
+            vendor: vendors.LEDGER,
+          });
+
+        } catch(e) {
+          this.logger.error(e.stack);
+        }
+      }
+    }
+  }
+
+  /*
+   *
+   * the case where there are multiple of the same vendor
+   * with the same fingerprint shouldn't matter because
+   * its premature optimization to allow for parallel signing,
+   * a device that can do the signing will be selected to
+   * do the signing, it doesn't matter too much which one
+   */
+  async select(options) {
+    const {vendor,fingerprint,device} = options;
+    assert(vendor || fingerprint, 'must pass one of vendor or fingerprint');
+
+    if (fingerprint) {
+      const selected = this.fingerPrints.get(fingerprint);
+      if (!selected)
+        throw new Error('fingerprint not found');
+      this.device = selected;
+      // its possible to select the wrong device with
+      // the same fingerprint. come up with good solution
+      return;
+    }
+
+    // no fingerprint provided
+    switch (vendor) {
+      case vendors.LEDGER:
+        this.selectLedger(options);
+        break;
+
+      case vendors.TREZOR:
+        break;
+
+      default:
+        throw new Error(`trying to connect to unknown vendor: ${vendor}`);
+    }
+  }
+
+  /*
+   * select the first ledger device
+   * TODO: add select by fingerprint support
+   */
+  async selectLedger(options) {
+
+    const devices = [...this.devices[vendors.LEDGER].values()]
+
+    if (devices.length === 0)
+      throw new Error('cannot connect when no devices');
+
+    this.device = devices[0];
+  }
+
+
+  async selectTrezor() {}
 
   /*
    * TODO: properly close this.device
    * figure out how to get trezor to not hang open
    */
   async close() {
+    for (const timer of this.timers)
+      clearInterval(timer);
+
     switch (this.vendor) {
       case vendors.LEDGER:
         break;
@@ -146,7 +295,6 @@ class Hardware {
   }
 
   refresh() {
-    this.initialized = false;
     this.device = null;
   }
 
@@ -156,9 +304,6 @@ class Hardware {
    * @throws
    */
   ensureInitialized() {
-    if (!this.initialized)
-      throw new Error('must initialize Hardware')
-
     if (!this.device)
       throw new Error('device not found')
   }
@@ -672,9 +817,13 @@ class Hardware {
    * @param options.retryCount {Integer}
    */
   fromOptions(options) {
-    assert(options.vendor, 'must initialize with vendor ledger or trezor');
-    assert(options.vendor === 'ledger' || options.vendor === 'trezor');
-    this.vendor = options.vendor;
+    if (!options.vendor)
+      this.vendor = 'ANY';
+    else {
+      const vendor = options.vendor.toUpperCase();
+      assert(vendor in vendors, 'must pass supported vendor');
+      this.vendor = vendor;
+    }
 
     assert(options.network, 'must pass network');
     this.network = options.network;
