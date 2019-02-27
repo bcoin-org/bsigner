@@ -100,20 +100,25 @@ class Hardware extends EventEmitter {
   async watch(vendor) {
     await this.checkDevices(vendor);
     if (!this.device)
-      this.tryConnect({vendor});
+      this.trySelect({vendor});
 
     this.timers.push(setInterval(async () => {
       await this.checkDevices(vendor);
 
       if (!this.device)
-        this.tryConnect({vendor})
+        this.trySelect({vendor})
     }, 2000));
   }
 
-  tryConnect({vendor}) {
+  /*
+   * try to select a device based on the
+   * vendor
+   * TODO: add select by fingerprint support
+   */
+  trySelect({vendor}) {
     const devices = this.devices[vendor];
     if (devices.size > 0)
-      this.connect({vendor});
+      this.select({vendor});
   }
 
   /*
@@ -226,7 +231,7 @@ class Hardware extends EventEmitter {
    * a device that can do the signing will be selected to
    * do the signing, it doesn't matter too much which one
    */
-  async connect(options) {
+  async select(options) {
     const {vendor,fingerprint,device} = options;
     assert(vendor || fingerprint, 'must pass one of vendor or fingerprint');
 
@@ -243,7 +248,7 @@ class Hardware extends EventEmitter {
     // no fingerprint provided
     switch (vendor) {
       case vendors.LEDGER:
-        this.connectLedger(options);
+        this.selectLedger(options);
         break;
 
       case vendors.TREZOR:
@@ -255,9 +260,10 @@ class Hardware extends EventEmitter {
   }
 
   /*
-   *
+   * select the first ledger device
+   * TODO: add select by fingerprint support
    */
-  async connectLedger(options) {
+  async selectLedger(options) {
 
     const devices = [...this.devices[vendors.LEDGER].values()]
 
@@ -268,7 +274,7 @@ class Hardware extends EventEmitter {
   }
 
 
-  async connectTrezor() {}
+  async selectTrezor() {}
 
   /*
    * TODO: properly close this.device
