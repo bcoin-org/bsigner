@@ -1,3 +1,9 @@
+/*!
+ * common.js
+ * Copyright (c) 2018-2019, bcoin developers (MIT License)
+ * https://github.com/bcoin-org/bsigner
+ */
+
 'use strict';
 
 const assert = require('bsert');
