@@ -1,4 +1,4 @@
-# libsigner
+# bsigner
 
 Manage watch only wallets with bcoin
 
@@ -12,7 +12,7 @@ Manage watch only wallets with bcoin
 
 ## Library Usage
 
-`libsigner` helps to manage watch only wallets using `bcoin`.
+`bsigner` helps to manage hardware signing using `bcoin`.
 
 ### Exposed Classes/Functions
 
@@ -23,7 +23,7 @@ but will be generalized into an abstract `Signer` in the future.
 
 ```javascript
 
-const {Hardware,Path} = require('libsigner');
+const {Hardware, Path} = require('bsigner');
 
 (async () => {
 
@@ -32,9 +32,9 @@ const {Hardware,Path} = require('libsigner');
 
   const hardware = Hardware.fromOptions({
     vendor: 'ledger',    // supports ledger
-    network: 'regtest',  // main, testnet, regtest, or simnet
+    network: 'regtest'   // main, testnet, regtest, or simnet
   });
-  
+
   const hdpubkey = await hardware.getPublicKey(path);
 
 })().catch(e => {
@@ -56,20 +56,20 @@ to sign transactions using the hardware wallet device.
 ```javascript
 const {WalletClient} = require('bclient');
 const {Newtork} = require('bcoin');
-const {Path,prepareSign,Hardware} = require('libsigner');
+const {Path, prepareSign, Hardware} = require('bsigner');
 
 const network = Network.get('regtest');
 
 const client = new WalletClient({
   port: network.walletPort,
-  network: network.type,
+  network: network.type
 });
 
 const wallet = client.wallet('mywallet');
 
 const hardware = Hardware.fromOptions({
   vendor: 'ledger',
-  network: 'regtest',
+  network: 'regtest'
 });
 
 const wallet = client.wallet('primary');
@@ -79,19 +79,19 @@ const tx = await wallet.createTX({
   account: 'default',
   rate: 1e3,
   outputs: [{ value: 1e4, address: REaoV1gcgqDSQCkdZpjFZptGnutGEat4DR }],
-  sign: false,
+  sign: false
 });
 
 const {coins,inputTXs,paths,mtx} = await prepareSign({
   tx: tx,
   wallet: walletClient.wallet(walletId),
-  path: path.clone(),
+  path: path.clone()
 });
 
 const signed = await hardware.signTransaction(mtx, {
   paths,
   inputTXs,
-  coins,
+  coins
 });
 
 console.log(signed.verify());
@@ -104,13 +104,13 @@ to manage signing multisignature transactions
 ```javascript
 const {WalletClient} = require('bclient');
 const {Newtork} = require('bcoin');
-const {Path,prepareSignMultisig,Hardware} = require('libsigner');
+const {Path, prepareSignMultisig, Hardware} = require('bsigner');
 
 const network = Network.get('regtest');
 
 const client = new WalletClient({
   port: network.walletPort,
-  network: network.type,
+  network: network.type
 });
 
 const wallet = client.wallet('primary');
@@ -121,7 +121,7 @@ const path = Path.fromList([44,0,0], true);
 const pmtx = await wallet.getProposalMTX(proposalId, {
   paths: true,
   scripts: true,
-  txs: true,
+  txs: true
 });
 
 const {paths,inputTXs,coins,scripts,mtx} = prepareSignMultisig({
@@ -134,7 +134,7 @@ const signatures = await hardware.getSignature(mtx, {
   inputTXs,
   coins,
   scripts,
-  enc: 'hex',
+  enc: 'hex'
 });
 
 const approval = await wallet.approveProposal(proposalId, signatures);
@@ -167,7 +167,7 @@ Create a `Path` that represents the path to the
 keypair that locks a particular utxo
 
 ```javascript
-const {Path} = require('libsigner');
+const {Path} = require('bsigner');
 
 // create a Path instance for bitcoin mainnet
 const path = Path.fromList([44,0,0], true);
@@ -318,7 +318,7 @@ Docs coming soon
 ## Notes
 
 Signing transactions with both legacy and segwit
-inputs will not work on ledger and trezor hardware 
+inputs will not work on ledger and trezor hardware
 devices due to their firmware. It is possible
 to craft such transactions with bcoin, so please
 be careful not to do so.

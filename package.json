@@ -1,8 +1,8 @@
 {
-  "name": "libsigner",
+  "name": "bsigner",
   "version": "0.2.0",
   "description": "transaction signing support for bcoin",
-  "main": "lib/libsigner.js",
+  "main": "lib/bsigner.js",
   "scripts": {
     "test": "bmocha -c test/*",
     "test:trezor": "bmocha -c test/* -g trezor",

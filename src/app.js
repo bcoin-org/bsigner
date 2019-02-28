@@ -10,8 +10,8 @@ const {Path} = require('./path');
  * allows clients to use token derived from
  * their hardware device
  *
- * @param {libsigner#Hardware} - hardware
- * @param {libsigner#Path} - path
+ * @param {bsigner#Hardware} - hardware
+ * @param {bsigner#Path} - path
  * @param {String} - enc
  * @returns {Buffer|String}
  */
@@ -34,8 +34,8 @@ async function generateToken(hardware, path, enc) {
  * @param {Object} - options
  * @param {bcoin#MTX|Object} - options.mtx
  * @param {bclient#WalletClient#wallet} - options.wallet
- * @param {[]libsigner#Path?} - options.paths
- * @param {libsigner#Path?} - options.path
+ * @param {[]bsigner#Path?} - options.paths
+ * @param {bsigner#Path?} - options.path
  * @param {bcoin#Network|String} - options.network
  * @returns {Object}
  */
@@ -131,7 +131,7 @@ async function prepareSign(options) {
  * @param {Number} - options.pmtx.paths.branch
  * @param {Number} - options.pmtx.paths.index
  * @param {[]Buffer} - options.scripts
- * @param {libsigner#Path} - options.path
+ * @param {bsigner#Path} - options.path
  * @returns {Object}
  */
 async function prepareSignMultisig(options) {
@@ -183,10 +183,10 @@ async function prepareSignMultisig(options) {
  * because it greedily stops at the first match
  * its possible to make it smarter by searching bip48/84 as well
  *
- * @param {libsigner#Hardware}
+ * @param {bsigner#Hardware}
  * @param {bclient#WalletClient#wallet}
  * @param {bcoin#Network|String}
- * @returns {libsigner#Path}
+ * @returns {bsigner#Path}
  */
 async function guessPath(hardware, wallet, network) {
   let target;

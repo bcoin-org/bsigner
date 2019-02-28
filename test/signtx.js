@@ -7,7 +7,7 @@ const assert = require('bsert');
 const {WorkerPool,Chain,Mempool,Miner,protocol,MTX} = require('bcoin');
 const MemWallet = require('./utils/memwallet');
 const {p2pkhSignatureInputs} = require('./utils/common');
-const {Path,Hardware} = require('../lib/libsigner');
+const {Path,Hardware} = require('../lib/bsigner');
 const Logger = require('blgr');
 
 /*

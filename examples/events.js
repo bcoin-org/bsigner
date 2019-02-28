@@ -1,6 +1,6 @@
 'use strict';
 
-const {Hardware} = require('../lib/libsigner');
+const {Hardware} = require('../lib/bsigner');
 
 (async () => {
   const hardware = Hardware.fromOptions({

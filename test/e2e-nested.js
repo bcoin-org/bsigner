@@ -7,7 +7,7 @@ const assert = require('bsert');
 const Logger = require('blgr');
 const {wallet, Network, protocol, FullNode} = require('bcoin');
 const {NodeClient, WalletClient} = require('bclient');
-const {Path, Hardware, prepareSign} = require('../lib/libsigner');
+const {Path, Hardware, prepareSign} = require('../lib/bsigner');
 
 /*
  * these tests test for spending from nested

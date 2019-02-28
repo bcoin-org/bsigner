@@ -6,7 +6,7 @@
 const assert = require('bsert');
 const Logger = require('blgr');
 const {Path, Hardware, generateToken, prepareSignMultisig} =
-  require('../lib/libsigner');
+  require('../lib/bsigner');
 const {wallet, Network, protocol, FullNode} = require('bcoin');
 const {NodeClient} = require('bclient');
 const bmultisig = require('bmultisig/lib/bmultisig');

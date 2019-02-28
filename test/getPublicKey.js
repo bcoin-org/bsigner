@@ -6,7 +6,7 @@
 const assert = require('bsert');
 const Logger = require('blgr');
 const {Network} = require('bcoin');
-const {Path,Hardware} = require('../lib/libsigner');
+const {Path,Hardware} = require('../lib/bsigner');
 const {testxpub} = require('./utils/key');
 
 /*
