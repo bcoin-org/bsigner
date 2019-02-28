@@ -1,7 +1,13 @@
+/* eslint-env mocha */
+/* eslint prefer-arrow-callback: "off" */
+
+'use strict';
+
 const assert = require('bsert');
-const blgr = require('blgr');
-const {Path,Hardware,generateToken,prepareSignMultisig} = require('../lib/libsigner');
-const {wallet,Network,protocol,FullNode,MTX,Coin} = require('bcoin');
+const Logger = require('blgr');
+const {Path, Hardware, generateToken, prepareSignMultisig} =
+  require('../lib/libsigner');
+const {wallet, Network, protocol, FullNode} = require('bcoin');
 const {NodeClient} = require('bclient');
 const bmultisig = require('bmultisig/lib/bmultisig');
 const Proposal = require('bmultisig/lib/primitives/proposal');
@@ -30,7 +36,7 @@ let hardware;
 const NULL32 = Buffer.alloc(32);
 // global instance of a logger
 // can be passed to Hardware instance
-const logger = new blgr('debug');
+const logger = new Logger('debug');
 
 // keep track of join key to allow other
 // cosigners to join
@@ -40,28 +46,28 @@ let joinKey;
 const cosignersInfo = {
   one: {
     path: Path.fromList([44,1,0], true),
-    name: 'one',
+    name: 'one'
   },
   two: {
     path: Path.fromList([44,1,1], true),
-    name: 'two',
+    name: 'two'
   },
   three: {
     path: Path.fromList([44,1,2], true),
-    name: 'three',
+    name: 'three'
   },
   four: {
     path: Path.fromList([44,1,3], true),
-    name: 'four',
+    name: 'four'
   },
   five: {
     path: Path.fromList([44,1,4], true),
-    name: 'five',
+    name: 'five'
   },
   six: {
     path: Path.fromList([44,1,5], true),
-    name: 'six',
-  },
+    name: 'six'
+  }
 };
 
 describe('Multisig', function() {
@@ -105,7 +111,7 @@ describe('Multisig', function() {
       // to work, this seems like a bug
       walletAuth: true,
       // be sure to set the admin token
-      adminToken: NULL32.toString('hex'),
+      adminToken: NULL32.toString('hex')
     });
 
     fullNode = new FullNode({
@@ -113,26 +119,26 @@ describe('Multisig', function() {
       port: network.port,
       memory: true,
       workers: true,
-      network: network.type,
+      network: network.type
     });
 
     client = new MultisigClient({
       port: network.walletPort,
       apiKey: NULL32.toString('hex'),
       token: NULL32.toString('hex'),
-      network: network,
+      network: network
     });
 
     nodeClient = new NodeClient({
       apiKey: NULL32.toString('hex'),
       port: network.rpcPort,
-      network: network.type,
+      network: network.type
     });
 
     hardware = Hardware.fromOptions({
       vendor: 'ledger',
       network: network,
-      logger,
+      logger
     });
 
     await logger.open();
@@ -144,7 +150,6 @@ describe('Multisig', function() {
     await walletNode.ensure();
     await walletNode.open();
   });
-
 
   /*
    * this test tests the generateToken function and joining
@@ -166,8 +171,7 @@ describe('Multisig', function() {
   const walletTypes = ['witness','standard'];
   const walletIds = ['foo', 'bar'];
   let minedSoFar = 0;
-  for (let [ii, walletType] of Object.entries(walletTypes)) {
-
+  for (const [ii, walletType] of Object.entries(walletTypes)) {
     /*
      * use different cosigners for each set of tests
      */
@@ -198,7 +202,7 @@ describe('Multisig', function() {
         n: 3,
         cosignerName: cosigner.name,
         cosignerPath: cosigner.path.toString(),
-        cosignerToken: token.toString('hex'),
+        cosignerToken: token.toString('hex')
       });
 
       assert.ok(response);
@@ -206,7 +210,7 @@ describe('Multisig', function() {
 
       // keep track of the join key
       joinKey = response.joinKey;
-    })
+    });
 
     /*
      * this test fully joins the wallet with the
@@ -230,13 +234,13 @@ describe('Multisig', function() {
           cosignerPath: cosigner.path.toString(),
           cosignerToken: token.toString('hex'),
           joinKey: joinKey,
-          accountKey: xpub,
+          accountKey: xpub
         });
         assert.ok(response);
       }
 
       // assert that it has been fully initialized
-      const info = await client.getInfo(walletId)
+      const info = await client.getInfo(walletId);
       assert.equal(info.initialized, true);
     });
 
@@ -247,7 +251,7 @@ describe('Multisig', function() {
       const toMine = 3;
 
       const {receiveAddress} = await client.getAccount(walletId);
-      const mine = await nodeClient.execute('generatetoaddress', [toMine, receiveAddress]);
+      await nodeClient.execute('generatetoaddress', [toMine, receiveAddress]);
 
       // keep track of the running total
       minedSoFar += toMine;
@@ -280,14 +284,14 @@ describe('Multisig', function() {
         rate: 1e3,
         sign: false,
         account: 'default',
-        outputs: [{value: 1e5, address: changeAddress}],
-      }
+        outputs: [{value: 1e5, address: changeAddress}]
+      };
 
       const proposal = await wallet.createProposal(opts);
 
       assert.equal(proposal.memo, opts.memo);
       assert.equal(proposal.authorDetails.name, cosigner.name);
-      assert.equal(proposal.statusCode, Proposal.status.PROGRESS)
+      assert.equal(proposal.statusCode, Proposal.status.PROGRESS);
     });
 
     /*
@@ -312,12 +316,12 @@ describe('Multisig', function() {
         const pmtx = await wallet.getProposalMTX(proposal.id, {
           paths: true,
           scripts: true,
-          txs: true,
+          txs: true
         });
 
         const {paths,inputTXs,coins,scripts,mtx} = prepareSignMultisig({
           pmtx,
-          path: cosigner.path.clone(),
+          path: cosigner.path.clone()
         });
 
         const signatures = await hardware.getSignature(mtx, {
@@ -325,13 +329,14 @@ describe('Multisig', function() {
           inputTXs,
           coins,
           scripts,
-          enc: 'hex',
+          enc: 'hex'
         });
 
         // do not broadcast explicitly, so we can assert on it
         const shouldBroadcast = false;
 
-        const approval = await wallet.approveProposal(proposal.id, signatures, shouldBroadcast);
+        const approval = await wallet.approveProposal(
+          proposal.id, signatures, shouldBroadcast);
 
         // cast j to an integer and when it is the final
         // cosigner, assert that it is approved and otherwise

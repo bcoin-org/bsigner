@@ -1,4 +1,6 @@
-const {MTX,TX,Coin,Network} = require('bcoin');
+'use strict';
+
+const {MTX, TX, Coin, Network} = require('bcoin');
 const assert = require('bsert');
 const {hash} = require('./common');
 const {Path} = require('./path');
@@ -42,13 +44,13 @@ async function prepareSign(options) {
     paths: [],
     inputTXs: [],
     coins: [],
-    scripts: [],
-  }
+    scripts: []
+  };
 
   const {wallet} = options;
   let {tx,paths,path,network} = options;
 
-  assert(tx, 'must pass tx')
+  assert(tx, 'must pass tx');
   assert(wallet, 'must pass wallet client');
   assert(network, 'must pass network');
 
@@ -90,8 +92,7 @@ async function prepareSign(options) {
   assert(Array.isArray(paths));
 
   for (const [i, input] of Object.entries(tx.inputs)) {
-
-    let prevhash = input.prevout.txid();
+    const prevhash = input.prevout.txid();
     const prevTX = await wallet.getTX(prevhash);
     const inputTX = TX.fromRaw(prevTX.tx, 'hex');
     out.inputTXs.push(inputTX);
@@ -114,8 +115,8 @@ async function prepareSign(options) {
 
   return {
     mtx: tx,
-    ...out,
-  }
+    ...out
+  };
 }
 
 /*
@@ -134,8 +135,7 @@ async function prepareSign(options) {
  * @returns {Object}
  */
 async function prepareSignMultisig(options) {
-  const {pmtx,wallet,hardware} = options;
-  let {network,path} = options;
+  const {pmtx, path} = options;
 
   assert(pmtx.tx, 'must pass tx');
   assert(pmtx.paths, 'must pass paths');
@@ -146,8 +146,8 @@ async function prepareSignMultisig(options) {
     paths: [],
     inputTXs: [],
     coins: [],
-    scripts: [],
-  }
+    scripts: []
+  };
 
   assert(Path.isPath(path), 'must pass Path instance');
 
@@ -172,8 +172,8 @@ async function prepareSignMultisig(options) {
 
   return {
     mtx,
-    ...out,
-  }
+    ...out
+  };
 }
 
 /*
@@ -223,4 +223,3 @@ exports.prepareSign = prepareSign;
 exports.prepareSignMultisig = prepareSignMultisig;
 exports.generateToken = generateToken;
 exports.guessPath = guessPath;
-

@@ -7,7 +7,7 @@
 'use strict';
 
 const assert = require('assert');
-const {BufferMap, BufferSet} = require('buffer-map');
+const {BufferMap} = require('buffer-map');
 const Network = require('bcoin/lib/protocol/network');
 const MTX = require('bcoin/lib/primitives/mtx');
 const HDPublicKey = require('bcoin/lib/hd/public');
@@ -54,7 +54,7 @@ class MemWallet {
     // allow for watch only
     if (options.watchOnly != null) {
       assert(typeof options.watchOnly === 'boolean');
-      this.watchOnly = options.watchOnly
+      this.watchOnly = options.watchOnly;
     }
 
     // pass in extended public key
@@ -167,16 +167,15 @@ class MemWallet {
 
     key = key.derive(branch).derive(index);
 
-    let opt = {
+    const opt = {
       network: this.network,
       witness: this.witness
-    }
+    };
 
     if (key.privateKey)
       opt.privateKey = key.privateKey;
     if (key.publicKey)
       opt.publicKey = key.publicKey;
-
 
     const ring = new KeyRing(opt);
     ring.witness = this.witness;
@@ -310,7 +309,6 @@ class MemWallet {
     for (let i = 0; i < tx.outputs.length; i++) {
       const output = tx.outputs[i];
       const addr = output.getHash();
-
 
       if (!addr)
         continue;

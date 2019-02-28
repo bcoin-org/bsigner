@@ -1,8 +1,13 @@
+/* eslint-env mocha */
+/* eslint prefer-arrow-callback: "off" */
+
+'use strict';
+
 const assert = require('bsert');
-const blgr = require('blgr');
+const Logger = require('blgr');
 const {Network} = require('bcoin');
 const {Path,Hardware} = require('../lib/libsigner');
-const {phrase,testxpub} = require('./utils/key');
+const {testxpub} = require('./utils/key');
 
 /*
  * these tests require the use of a common seed between
@@ -12,7 +17,7 @@ const {phrase,testxpub} = require('./utils/key');
  */
 
 const network = Network.get('regtest');
-const logger = new blgr('debug');
+const logger = new Logger('debug');
 
 /*
  * use the network to parse the coinType
@@ -41,15 +46,13 @@ describe('Get Public Key', function () {
   });
 
   it('should get public key from ledger', async ($) => {
-
     hardware = Hardware.fromOptions({
       vendor: 'ledger',
       network,
-      logger,
+      logger
     });
 
     await hardware.initialize();
-
 
     for (let i = 0; i <= 0; i++) {
       const accountIndex = i;
@@ -62,13 +65,14 @@ describe('Get Public Key', function () {
        * test all the values in the object
        * except for parentFingerPrint
        */
-      for (let [key,value] of Object.entries(pubkey)) {
+      for (const [key,value] of Object.entries(pubkey)) {
         // bledger currently doesn't return a parent fingerprint
         if (key === 'parentFingerPrint')
           continue;
 
         if (Buffer.isBuffer(value))
-          assert.bufferEqual(value, testpubkey[key], 'be sure to use the right mnemonic');
+          assert.bufferEqual(value, testpubkey[key],
+            'be sure to use the right mnemonic');
         else
           assert.deepEqual(value, testpubkey[key]);
       }
@@ -83,14 +87,14 @@ describe('Get Public Key', function () {
   });
 
   it('should get public key from trezor', async ($) => {
-    //$.skip();
+    // $.skip();
     const accountIndex = 0;
     const path = getPath(accountIndex, network);
 
     hardware = Hardware.fromOptions({
       vendor: 'trezor',
       network,
-      logger,
+      logger
     });
 
     await hardware.initialize();
@@ -98,7 +102,7 @@ describe('Get Public Key', function () {
     const pubkey = await hardware.getPublicKey(path);
     const testpubkey = testxpub(accountIndex, network);
 
-    for (let [key,value] of Object.entries(pubkey)) {
+    for (const [key,value] of Object.entries(pubkey)) {
       if (Buffer.isBuffer(value))
         assert.bufferEqual(value, testpubkey[key]);
       else

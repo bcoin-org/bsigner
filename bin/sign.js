@@ -3,15 +3,13 @@
 'use strict';
 
 const {WalletClient,NodeClient} = require('bclient');
-const {Network,MTX,TX,HDPublicKey,Outpoint,Coin} = require('bcoin');
+const {Network} = require('bcoin');
 const Config = require('bcfg');
-const blgr = require('blgr');
+const Logger = require('blgr');
 const assert = require('bsert');
 
 const {prepareSign} = require('../src/app');
 const {Hardware} = require('../src/hardware');
-const {prepareTypes} = require('../src/common');
-const {Path} = require('../src/path');
 
 class CLI {
   constructor() {
@@ -26,13 +24,13 @@ class CLI {
         h: 'httphost',
         p: 'httpport',
         s: 'ssl',
-        uri: 'url',
-      },
+        uri: 'url'
+      }
     });
 
     this.config.load({
       argv: true,
-      env: true,
+      env: true
     });
 
     if (this.config.has('config'))
@@ -40,12 +38,12 @@ class CLI {
   }
 
   async open() {
-    this.logger = new blgr(this.config.str('loglevel', 'info'));
+    this.logger = new Logger(this.config.str('loglevel', 'info'));
     await this.logger.open();
 
     if (this.config.has('help')) {
-      this.logger.info(this.help())
-      process.exit(0)
+      this.logger.info(this.help());
+      process.exit(0);
     }
 
     const [valid, msg] = this.validateConfig();
@@ -60,7 +58,7 @@ class CLI {
       vendor: this.config.str('vendor'),
       retry: this.config.bool('retry', true),
       logger: this.logger.context('hardware'),
-      network: network,
+      network: network
     });
 
     await this.hardware.initialize();
@@ -75,10 +73,11 @@ class CLI {
       network: network.type,
       port: network.walletPort,
       apiKey: this.config.str('apiKey'),
-      passphrase: this.config.str('passphrase'),
+      passphrase: this.config.str('passphrase')
     });
 
-    this.wallet = this.client.wallet(this.config.str('wallet'), this.config.str('token'));
+    this.wallet = this.client.wallet(
+      this.config.str('wallet'), this.config.str('token'));
 
     this.node = new NodeClient({
       network: network.type,
@@ -86,14 +85,14 @@ class CLI {
       apiKey: this.config.str('api-key'),
       host: this.config.str('http-host'),
       url: this.config.str('url'),
-      ssl: this.config.bool('ssl'),
+      ssl: this.config.bool('ssl')
     });
 
     // create output object
-    let out = {
+    const out = {
       vendor: this.config.str('vendor'),
       network: network.type,
-      wallet: this.config.str('wallet'),
+      wallet: this.config.str('wallet')
     };
 
     // for now, restrict to spending from a single account
@@ -109,21 +108,24 @@ class CLI {
       passphrase: this.config.str('passphrase'),
       subtractIndex: this.config.uint('subtract-index', 0),
       outputs: [
-        { value: this.config.uint('value'), address: this.config.str('recipient') },
-      ],
+        {
+          value: this.config.uint('value'),
+          address: this.config.str('recipient')
+        }
+      ]
     });
 
     const {coins,inputTXs,paths,mtx} = await prepareSign({
       tx: tx,
       wallet: this.wallet,
       account,
-      network: network,
+      network: network
     });
 
     const signed = await this.hardware.signTransaction(mtx, {
       paths,
       inputTXs,
-      coins,
+      coins
     });
 
     if (!signed)
@@ -167,7 +169,7 @@ class CLI {
     }
 
     if (!['main', 'testnet', 'regtest', 'simnet'].includes(network)) {
-      msg += `invalid network: ${network}\n`
+      msg += `invalid network: ${network}\n`;
       valid = false;
     }
 
@@ -198,7 +200,7 @@ class CLI {
   }
 
   help(msg = '') {
-    return msg + '\n' +
+    return String(msg + '\n' +
       'sign.js - sign transactions using trezor and ledger\n' +
       '  --network     [-n]            - one of main,testnet,regtest,simnet\n' +
       '  --vendor      [-v]            - signing vendor to use\n' +
@@ -213,8 +215,7 @@ class CLI {
       '  --http-host   [-h]            - wallet node http host\n' +
       '  --http-port   [-p]            - wallet node http port\n' +
       '  --log-level                   - log level\n' +
-      '  --config                      - path to config file\n' +
-      '';
+      '  --config                      - path to config file\n');
   }
 }
 

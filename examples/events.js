@@ -1,9 +1,11 @@
+'use strict';
+
 const {Hardware} = require('../lib/libsigner');
 
 (async () => {
   const hardware = Hardware.fromOptions({
     vendor: 'ledger',
-    network: 'regtest',
+    network: 'regtest'
   });
 
   hardware.on('connect', async ({vendor,fingerprint}) => {
@@ -16,8 +18,7 @@ const {Hardware} = require('../lib/libsigner');
 
   console.log('initializing hardware, please plug in device');
   await hardware.initialize();
-
-})().catch(e => {
+})().catch((e) => {
   console.log(e);
   process.exit(1);
-})
+});

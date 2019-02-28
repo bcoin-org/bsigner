@@ -5,11 +5,11 @@
 const {Network,KeyRing} = require('bcoin');
 const {WalletClient} = require('bclient');
 const Config = require('bcfg');
-const blgr = require('blgr');
+const Logger = require('blgr');
 const assert = require('bsert');
 
 const {Hardware} = require('../src/hardware');
-const {bip44} = require('../src/common');
+// const {bip44} = require('../src/common');
 const {Path} = require('../src/path');
 
 /*
@@ -33,13 +33,13 @@ class CLI {
         a: 'account',
         u: 'url',
         h: 'httphost',
-        p: 'httpport',
-      },
+        p: 'httpport'
+      }
     });
 
     this.config.load({
       argv: true,
-      env: true,
+      env: true
     });
 
     if (this.config.has('config'))
@@ -47,7 +47,7 @@ class CLI {
   }
 
   async open() {
-    this.logger = new blgr(this.config.str('loglevel', 'info'));
+    this.logger = new Logger(this.config.str('loglevel', 'info'));
     await this.logger.open();
 
     if (this.config.has('help')) {
@@ -70,24 +70,25 @@ class CLI {
       port: this.config.uint('http-port', network.walletPort),
       host: this.config.str('http-host'),
       url: this.config.str('url'),
-      ssl: this.config.bool('ssl'),
+      ssl: this.config.bool('ssl')
     });
 
-    this.wallet = this.client.wallet(this.config.str('wallet'), this.config.str('token'));
+    this.wallet = this.client.wallet(
+      this.config.str('wallet'), this.config.str('token'));
 
     this.hardware = Hardware.fromOptions({
       vendor: this.config.str('vendor'),
       retry: this.config.bool('retry', true),
       network: network.type,
-      logger: this.logger.context('hardware'),
+      logger: this.logger.context('hardware')
     });
 
     await this.hardware.initialize();
 
     // create output object
-    let out = {
+    const out = {
       network: network.type,
-      vendor: this.config.str('vendor'),
+      vendor: this.config.str('vendor')
     };
 
     if (this.config.has('path'))
@@ -105,7 +106,7 @@ class CLI {
         purpose: this.config.str('purpose', '44h'),
         account: this.config.str('index'),
         // allow for custom coin paths
-        coin: this.config.str('coin'),
+        coin: this.config.str('coin')
       });
     }
 
@@ -121,7 +122,6 @@ class CLI {
     out.xkey = this.xkey;
     out.publicKey = hdpubkey.publicKey.toString('hex');
 
-
     /*
      * derive the receive addresses
      * the branch is 0 and the index increments
@@ -135,18 +135,17 @@ class CLI {
       const legacyAddresses = [];
       const segwitAddresses = [];
       for (let i = 0; i < this.config.str('receive-depth', 3); i++) {
-
         const legacy = toAddress(hdpubkey, {
           network: network,
           branch: 0,
-          index: i,
+          index: i
         });
 
         const segwit = toAddress(hdpubkey, {
           network: network,
           branch: 0,
           index: i,
-          witness: true,
+          witness: true
         });
 
         legacyAddresses.push(legacy);
@@ -155,8 +154,8 @@ class CLI {
 
       out.receive = {
         legacy: legacyAddresses,
-        segwit: segwitAddresses,
-      }
+        segwit: segwitAddresses
+      };
     }
 
     /*
@@ -168,18 +167,17 @@ class CLI {
       const legacyAddresses = [];
       const segwitAddresses = [];
       for (let i = 0; i < this.config.str('change-depth', 3); i++) {
-
         const legacy = toAddress(hdpubkey, {
           network: network,
           branch: 1,
-          index: i,
+          index: i
         });
 
         const segwit = toAddress(hdpubkey, {
           network: network,
           branch: 1,
           index: i,
-          witness: true,
+          witness: true
         });
 
         legacyAddresses.push(legacy);
@@ -188,8 +186,8 @@ class CLI {
 
       out.change = {
         legacy: legacyAddresses,
-        segwit: segwitAddresses,
-      }
+        segwit: segwitAddresses
+      };
     }
 
     if (this.config.has('create-wallet')) {
@@ -200,7 +198,7 @@ class CLI {
       const response = await this.client.createWallet(wallet, {
         witness: witness,
         accountKey: this.xkey,
-        watchOnly: true,
+        watchOnly: true
       });
 
       out.response = response;
@@ -215,7 +213,7 @@ class CLI {
         witness: witness,
         token: this.config.str('token'),
         accountKey: hdpubkey.xpubkey(network.type),
-        watchOnly: true,
+        watchOnly: true
       });
 
       out.wallet = this.config.str('wallet');
@@ -247,7 +245,7 @@ class CLI {
     }
 
     if (!['main', 'testnet', 'regtest', 'simnet'].includes(network)) {
-      msg += `invalid network: ${network}\n`
+      msg += `invalid network: ${network}\n`;
       valid = false;
     }
 
@@ -293,7 +291,7 @@ class CLI {
 
   // TODO: finish and document
   help(msg = '') {
-    return msg + '\n' +
+    return String(msg + '\n' +
       'pubkeys.js - manage hd public keys with bcoin watch only wallets\n' +
       '  --config               - path to config file\n' +
       '  --receive-depth        - number of receive addresses to render\n' +
@@ -313,8 +311,7 @@ class CLI {
       '  --create-account       - create bcoin account using derived pubkey\n' +
       '    --wallet      [-w]   - name of wallet to create account in\n' +
       '    --account     [-a]   - name of account to create\n' +
-      '    --api-key     [-k]   - optional bcoin api key\n' +
-      '';
+      '    --api-key     [-k]   - optional bcoin api key\n');
   }
 }
 
@@ -346,7 +343,7 @@ function toAddress(hdpubkey, options) {
 
   const addresspubkey = hdpubkey.derive(branch).derive(index);
 
-  let keyring = KeyRing.fromPublic(addresspubkey.publicKey);
+  const keyring = KeyRing.fromPublic(addresspubkey.publicKey);
   keyring.witness = options.witness;
 
   return keyring.getAddress('string', network);

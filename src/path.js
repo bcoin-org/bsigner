@@ -1,9 +1,11 @@
+'use strict';
+
 const {HDPublicKey} = require('bcoin');
 const {base58} = require('bstring');
 const assert = require('bsert');
 const inspect = Symbol.for('nodejs.util.inspect.custom');
 
-const {parsePath,bip44,HDVersionBytes,harden} = require('./common');
+const {parsePath, bip44, HDVersionBytes, harden} = require('./common');
 
 /*
  * Path class for handling bip44 paths
@@ -112,7 +114,7 @@ class Path {
     const list = [
       this.purpose,
       this.coin,
-      this.account,
+      this.account
     ];
 
     // either add both or add neither
@@ -132,7 +134,7 @@ class Path {
       network: this.network,
       account: this.account,
       branch: this.branch,
-      index: this.index,
+      index: this.index
     });
   }
 
@@ -156,7 +158,7 @@ class Path {
     return this.fromList([
       this.purpose,
       this.coin,
-      this.account,
+      this.account
     ]);
   }
 
@@ -176,14 +178,14 @@ class Path {
   }
 
   [inspect]() {
-    return `<Path bip${this.purpose}=${this.toString()}>`
+    return `<Path bip${this.purpose}=${this.toString()}>`;
   }
 
   fromType(type, hardened) {
     switch (typeof type) {
       case 'string':
         if (base58.test(type))
-          return this.fromAccountPublicKey(type)
+          return this.fromAccountPublicKey(type);
         else
           return this.fromString(type);
       case 'object':
@@ -212,12 +214,11 @@ class Path {
   }
 
   static fromOptions(options) {
-    return new this().fromOptions(options)
+    return new this().fromOptions(options);
   }
 
   static fromAccountPublicKey(pubkey) {
-    return new this().fromAccountPublicKey(pubkey)
-
+    return new this().fromAccountPublicKey(pubkey);
   }
 
   fromAccountPublicKey(xkey) {
@@ -227,7 +228,7 @@ class Path {
       throw new Error('cannot infer from HDPublicKey');
 
     const prefix = xkey.slice(0,4);
-    const base = HDVersionBytes.get(prefix)
+    const base = HDVersionBytes.get(prefix);
 
     assert(base, 'unknown exteneded key prefix');
 
@@ -236,7 +237,7 @@ class Path {
 
     return this.fromList([
       ...base,
-      hdpubkey.childIndex,
+      hdpubkey.childIndex
     ]);
   }
 
@@ -310,7 +311,7 @@ function isNumberLike(option) {
   if (typeof option === 'string') {
     // support for both ' and h suffix
     const last = option[option.length-1];
-    if (last === `'` || last === 'h')
+    if (last === '\'' || last === 'h')
       option = option.slice(0,option.length-1);
     if (!Number.isNaN(parseInt(option, 10)))
       return true;
@@ -322,7 +323,7 @@ function fromNumberLike(option) {
     return option;
   if (typeof option === 'string') {
     const last = option[option.length-1];
-    if (last === `'` || last === 'h') {
+    if (last === '\'' || last === 'h') {
       let index = option.slice(0,option.length-1);
       index = parseInt(index, 10);
       return Path.harden(index);

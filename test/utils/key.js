@@ -1,3 +1,5 @@
+'use strict';
+
 const {HDPrivateKey,Network,Mnemonic} = require('bcoin');
 
 // well known test mnemonic
@@ -13,7 +15,7 @@ const phrase = [
   'abandon',
   'abandon',
   'abandon',
-  'about',
+  'about'
 ].join(' ');
 
 // TODO: assert on network type being valid

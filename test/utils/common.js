@@ -1,3 +1,5 @@
+'use strict';
+
 const {HDPublicKey,KeyRing} = require('bcoin');
 const assert = require('bsert');
 
@@ -11,12 +13,12 @@ function deriveFromAccountHDPublicKey(options) {
   const {hdPublicKey,network} = options;
   assert(HDPublicKey.isHDPublicKey(hdPublicKey));
   assert(typeof network === 'string');
-  const xpub = hdPublicKey.xpubkey(network);
+  // const xpub = hdPublicKey.xpubkey(network);
 
   // derive receive address
   const {index = 0} = options;
 
-  let result = {};
+  const result = {};
   const witness = options.witness ? true : false;
 
   {
@@ -27,8 +29,8 @@ function deriveFromAccountHDPublicKey(options) {
     result.change = {
       keyring: keyring,
       address: addr,
-      hdPublicKey: hd,
-    }
+      hdPublicKey: hd
+    };
   }
 
   {
@@ -40,13 +42,12 @@ function deriveFromAccountHDPublicKey(options) {
     result.receive = {
       keyring: keyring,
       address: addr,
-      hdPublicKey: hd,
-    }
+      hdPublicKey: hd
+    };
   }
 
   return result;
 }
-
 
 /*
  * build the inputs to ledgerApp
@@ -74,8 +75,8 @@ function p2pkhSignatureInputs(mtx, wallet, accountPath) {
   return {
     inputTXs,
     coins,
-    paths,
-  }
+    paths
+  };
 }
 
 exports.deriveFromAccountHDPublicKey = deriveFromAccountHDPublicKey;

@@ -1,3 +1,8 @@
+/* eslint-env mocha */
+/* eslint prefer-arrow-callback: "off" */
+
+'use strict';
+
 const assert = require('bsert');
 
 const {Path} = require('../src/path');
@@ -30,7 +35,7 @@ describe('Path', function () {
     const expected = [
       Path.harden(44),     // purpose
       Path.harden(0),      // type
-      Path.harden(index),  // account index
+      Path.harden(index)   // account index
     ];
 
     for (const [i, uint] of Object.entries(list))
@@ -60,7 +65,7 @@ describe('Path', function () {
     const expected = [
       Path.harden(0),
       Path.harden(0),
-      Path.harden(0),
+      Path.harden(0)
     ];
 
     assert.deepEqual(list, expected);
@@ -68,7 +73,7 @@ describe('Path', function () {
 
   it('should instantiate from string', () => {
     const input = 'm\'/0/0/0';
-    path = Path.fromString(input)
+    path = Path.fromString(input);
     assert.ok(path);
 
     const str = path.toString();
@@ -110,7 +115,7 @@ describe('Path', function () {
     const expected = [
       Path.harden(purpose),
       Path.harden(type),
-      Path.harden(index),
+      Path.harden(index)
     ];
 
     assert.deepEqual(list, expected);
@@ -126,7 +131,6 @@ describe('Path', function () {
 
     const list = path.toList();
     assert.deepEqual(list, [depthOne, depthTwo, depthThree]);
-
   });
 
   it('should properly convert to hardened string', () => {
@@ -137,7 +141,7 @@ describe('Path', function () {
     const input = [
       Path.harden(purpose),
       Path.harden(type),
-      Path.harden(index),
+      Path.harden(index)
     ];
 
     path = Path.fromList(input);
@@ -150,7 +154,7 @@ describe('Path', function () {
 
   it('should instantiate from xpub', () => {
     const xpub = testxpub(0, 'regtest');
-    const accountKey = xpub.xpubkey('regtest')
+    const accountKey = xpub.xpubkey('regtest');
     path = Path.fromAccountPublicKey(accountKey);
     assert.ok(path);
   });
@@ -165,10 +169,10 @@ describe('Path', function () {
       `m'/44'/0'/${index}'`,
       `m'/44'/1'/${index}'`,
       `m'/44'/1'/${index}'`,
-      `m'/44'/1'/${index}'`,
+      `m'/44'/1'/${index}'`
     ];
 
-    for (let [i, network] of Object.entries(networks)) {
+    for (const [i, network] of Object.entries(networks)) {
       const xpub = testxpub(index, network);
       const accountKey = xpub.xpubkey(network);
       path = Path.fromAccountPublicKey(accountKey);
@@ -179,7 +183,7 @@ describe('Path', function () {
       const expected = [
         Path.harden(44),
         Path.harden(bip44.coinType[network]),
-        Path.harden(index),
+        Path.harden(index)
       ];
 
       const list = path.toList();
@@ -188,7 +192,7 @@ describe('Path', function () {
   });
 
   it('should throw an error for bad xpub prefix', () => {
-    let xpub = testxpub(0, 'regtest');
+    const xpub = testxpub(0, 'regtest');
     let accountKey = xpub.xpubkey('regtest');
     // replace first character with a
     accountKey = 'a' + accountKey.slice(1);
@@ -211,7 +215,7 @@ describe('Path', function () {
     const input = [
       Path.harden(purpose),
       Path.harden(type),
-      Path.harden(index),
+      Path.harden(index)
     ];
 
     path = Path.fromList(input);
@@ -220,7 +224,6 @@ describe('Path', function () {
     const expected = `m'/${purpose}'/${type}'/${index}'`;
 
     assert.equal(str, expected);
-
   });
 
   it('should append non hardened', () => {
@@ -231,7 +234,7 @@ describe('Path', function () {
     const input = [
       purpose,
       type,
-      index,
+      index
     ];
 
     path = Path.fromList(input);
@@ -262,7 +265,7 @@ describe('Path', function () {
     const input = [
       purpose,
       type,
-      index,
+      index
     ];
 
     path = Path.fromList(input);
@@ -303,7 +306,7 @@ describe('Path', function () {
       const expected = [
         ...input,
         Path.harden(one),
-        Path.harden(two),
+        Path.harden(two)
       ];
 
       assert.deepEqual(list, expected);
@@ -328,7 +331,7 @@ describe('Path', function () {
       purpose: Path.harden(44),
       coin: Path.harden(0),
       account: Path.harden(0),
-      strict: false,
+      strict: false
     });
     for (let i = 0; i < 5; i++)
       path = path.push(0);
@@ -360,7 +363,7 @@ describe('Path', function () {
     path = Path.fromOptions({
       purpose: {index: purpose, hardened: false},
       coin: {index: coin},
-      account: {index: account, hardened: true},
+      account: {index: account, hardened: true}
     });
 
     assert.equal(path.purpose, purpose);
@@ -371,24 +374,23 @@ describe('Path', function () {
     assert.deepEqual(list, [
       purpose,
       coin,
-      Path.harden(account),
+      Path.harden(account)
     ]);
-  })
+  });
 
   it('should instantiate from options with alt hardened syntax', () => {
     const purpose = '12h';
     const coin = '14';
-    const account = `1'`;
+    const account = '1\'';
 
     path = Path.fromOptions({
       purpose: purpose,
       coin: coin,
-      account: account,
+      account: account
     });
 
     assert.equal(path.purpose, Path.harden(12));
     assert.equal(path.coin, 14);
-    assert.equal(path.account, Path.harden(1))
+    assert.equal(path.account, Path.harden(1));
   });
 });
-

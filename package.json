@@ -6,7 +6,10 @@
   "scripts": {
     "test": "bmocha -c test/*",
     "test:trezor": "bmocha -c test/* -g trezor",
-    "test:ledger": "bmocha -c test/* -g ledger"
+    "test:ledger": "bmocha -c test/* -g ledger",
+    "lint": "eslint $(cat .eslintfiles) || exit 0",
+    "lint-ci": "eslint $(cat .eslintfiles)",
+    "lint-file": "eslint"
   },
   "keywords": [
     "bitcoin",

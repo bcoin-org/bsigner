@@ -1,19 +1,19 @@
 'use strict';
 
 const EventEmitter = require('events');
-const trezor = require('trezor.js');
-const bledger = require('bledger')
+// const trezor = require('trezor.js');
+const bledger = require('bledger');
 const {LedgerBcoin,LedgerTXInput} = bledger;
 const {Device} = bledger.HID;
 const assert = require('bsert');
 const {Lock} = require('bmutex');
-const blgr = require('blgr');
-const {HDPublicKey,TX} = require('bcoin');
+const Logger = require('blgr');
+const {TX} = require('bcoin');
 const {opcodes} = require('bcoin/lib/script/common');
 const hash160 = require('bcrypto/lib/hash160');
 const secp256k1 = require('bcrypto/lib/secp256k1');
 
-const {vendors,bip44,parsePath,sleep} = require('./common');
+const {vendors, parsePath} = require('./common');
 const {Path} = require('./path');
 
 /*
@@ -28,7 +28,7 @@ class Hardware extends EventEmitter {
     super();
 
     this.initialized = false;
-    this.logger = new blgr();
+    this.logger = new Logger();
     this.lock = new Lock(false);
     this.device = null;
     this.retry = false;
@@ -40,8 +40,8 @@ class Hardware extends EventEmitter {
     // index devices by path
     this.devices = {
       [vendors.LEDGER]: new Map(),
-      [vendors.TREZOR]: new Map(),
-    }
+      [vendors.TREZOR]: new Map()
+    };
 
     // index devices by fingerprint
     this.fingerPrints = new Map();
@@ -76,11 +76,9 @@ class Hardware extends EventEmitter {
 
         case vendors.TREZOR:
           throw new Error('trezor support has been removed temporarily');
-          break;
 
         case vendors.LOCAL:
           throw new Error('local signing is not available yet');
-          break;
 
         default:
           throw new Error('unknown vendor type:' + this.vendor);
@@ -106,7 +104,7 @@ class Hardware extends EventEmitter {
       await this.checkDevices(vendor);
 
       if (!this.device)
-        this.trySelect({vendor})
+        this.trySelect({vendor});
     }, 2000));
   }
 
@@ -169,26 +167,26 @@ class Hardware extends EventEmitter {
 
         this.emit('disconnect', {
           vendor: vendors.LEDGER,
-          fingerprint: v.fingerprint,
+          fingerprint: v.fingerprint
         });
       }
     }
 
     // initialize any new devices
     // index them and emit events
-    for (let d of detected) {
+    for (const d of detected) {
       if (!(known.has(d.path))) {
         try {
           const device = new Device({
             device: d,
-            timeout: 5000,
+            timeout: 5000
           });
 
           await device.open();
 
           const ledgerBcoin = new LedgerBcoin({
             device,
-            network: this.network,
+            network: this.network
           });
 
           // get the fingerprint so we can index by fingerprint
@@ -206,16 +204,15 @@ class Hardware extends EventEmitter {
 
           this.emit('connect', {
             vendor: vendors.LEDGER,
-            fingerprint: fp,
+            fingerprint: fp
           });
 
           known.set(d.path, ledgerBcoin);
 
           this.fingerPrints.set(fp, {
             device: ledgerBcoin,
-            vendor: vendors.LEDGER,
+            vendor: vendors.LEDGER
           });
-
         } catch(e) {
           this.logger.error(e.stack);
         }
@@ -232,7 +229,7 @@ class Hardware extends EventEmitter {
    * do the signing, it doesn't matter too much which one
    */
   async select(options) {
-    const {vendor,fingerprint,device} = options;
+    const {vendor, fingerprint} = options;
     assert(vendor || fingerprint, 'must pass one of vendor or fingerprint');
 
     if (fingerprint) {
@@ -264,15 +261,13 @@ class Hardware extends EventEmitter {
    * TODO: add select by fingerprint support
    */
   async selectLedger(options) {
-
-    const devices = [...this.devices[vendors.LEDGER].values()]
+    const devices = [...this.devices[vendors.LEDGER].values()];
 
     if (devices.length === 0)
       throw new Error('cannot connect when no devices');
 
     this.device = devices[0];
   }
-
 
   async selectTrezor() {}
 
@@ -305,7 +300,7 @@ class Hardware extends EventEmitter {
    */
   ensureInitialized() {
     if (!this.device)
-      throw new Error('device not found')
+      throw new Error('device not found');
   }
 
   /*
@@ -329,6 +324,7 @@ class Hardware extends EventEmitter {
       return await this._getPublicKey(path);
     } catch (e) {
       this.logger.debug(e.stack);
+      return false;
     } finally {
       unlock();
     }
@@ -368,7 +364,8 @@ class Hardware extends EventEmitter {
     // because it relies on their bitcore
     if (this.vendor === vendors.TREZOR) {
       if (this.network.type === 'regtest' || this.network.type === 'simnet') {
-        throw new Error(`unsupported vendor ${this.vendor} with network ${this.network}`);
+        throw new Error('unsupported vendor '+
+          `${this.vendor} with network ${this.network}`);
       }
     }
 
@@ -391,6 +388,7 @@ class Hardware extends EventEmitter {
       return await this._signTransaction(tx, inputTXs, coins, paths, scripts);
     } catch (e) {
       this.logger.error(e.stack);
+      return false;
     } finally {
       unlock();
     }
@@ -410,7 +408,8 @@ class Hardware extends EventEmitter {
   async _signTransaction(tx, inputTXs, coins, paths, scripts) {
     switch (this.vendor) {
       case vendors.LEDGER: {
-        const ledgerInputs = this.ledgerInputs(tx, inputTXs, coins, paths, scripts);
+        const ledgerInputs =
+          this.ledgerInputs(tx, inputTXs, coins, paths, scripts);
 
         const result = await this.device.signTransaction(tx, ledgerInputs);
 
@@ -419,7 +418,7 @@ class Hardware extends EventEmitter {
          * but its nice to see the signatures
          */
         this.logger.debug('(w)txid: %s', result.wtxid());
-        for (let [i, input] of Object.entries(result.inputs)) {
+        for (const [i, input] of Object.entries(result.inputs)) {
           if (input.witness.length)
             this.logger.debug(`witness: ${input.witness.toString('hex')}`);
           else if (input.script.length) {
@@ -435,7 +434,8 @@ class Hardware extends EventEmitter {
 
       // TODO: test this!
       case vendors.TREZOR: {
-        const [trezorInputs, refTXs] = this.trezorInputs(tx, inputTXs, coins, paths, scripts);
+        const [trezorInputs, refTXs] =
+          this.trezorInputs(tx, inputTXs, coins, paths, scripts);
 
         const trezorOutputs = this.trezorOutputs(tx);
 
@@ -446,10 +446,12 @@ class Hardware extends EventEmitter {
 
         const lockTime = tx.locktime;
 
-        const response = await this.device.waitForSessionAndRun(async session => {
-          // inputs, outputs, txs?, coinType
-          return await session.signTx(trezorInputs, trezorOutputs, refTXs, network, lockTime);
-        });
+        const response =
+          await this.device.waitForSessionAndRun(async (session) => {
+            // inputs, outputs, txs?, coinType
+            return await session.signTx(trezorInputs, trezorOutputs,
+                refTXs, network, lockTime);
+          });
 
         // TODO: better error checking
         // expecing the type to be trezor.SignedTx
@@ -463,6 +465,8 @@ class Hardware extends EventEmitter {
         return transaction;
       }
     }
+
+    return false;
   }
 
   /*
@@ -474,7 +478,7 @@ class Hardware extends EventEmitter {
     for (const [i, output] of mtx.outputs.entries()) {
       this.logger.debug('output number: %s', i);
 
-      let address, scriptType;
+      let address;
       const segwit = this.isSegwit(output);
       if (segwit) {
         address = output.getAddress().toBech32(this.network);
@@ -484,8 +488,8 @@ class Hardware extends EventEmitter {
       } else {
         address = output.getAddress().toBase58(this.network);
       }
-      scriptType = 'PAYTOADDRESS';
 
+      const scriptType = 'PAYTOADDRESS';
       const amount = output.value.toString();
 
       this.logger.debug('output address: %s', address);
@@ -494,7 +498,7 @@ class Hardware extends EventEmitter {
       outputs.push({
         address,
         amount,
-        script_type: scriptType,
+        script_type: scriptType
       });
     }
 
@@ -524,12 +528,12 @@ class Hardware extends EventEmitter {
           child_num: key.childIndex,
           fingerprint: key.parentFingerPrint,
           public_key: key.publicKey.toString('hex'),
-          chain_code: key.chainCode.toString('hex'),
+          chain_code: key.chainCode.toString('hex')
         },
-        address_n: [branch, index],
+        address_n: [branch, index]
       })),
       signatures: pubkeys.map(() => ''),
-      m: m,
+      m: m
     };
 
     return input;
@@ -560,10 +564,11 @@ class Hardware extends EventEmitter {
         prev_index: input.prevout.index,
         prev_hash: input.prevout.txid(),
         script_type: 'SPENDADDRESS',
-        amount: coin.value.toString(),
+        amount: coin.value.toString()
       };
 
-      this.logger.debug('prevout %s/%s', input.prevout.txid(), input.prevout.index);
+      this.logger.debug('prevout %s/%s',
+        input.prevout.txid(), input.prevout.index);
 
       const inputTX = inputTXs[i];
       if (this.isMultisig(coin)) {
@@ -576,11 +581,11 @@ class Hardware extends EventEmitter {
       if (segwit) {
         // check for nested
         if (this.isNested(coin)) {
-          //ti.script_type = 'SPENDP2SHWITNESS';
+          // ti.script_type = 'SPENDP2SHWITNESS';
           this.logger.debug('detected nested segwit');
-        }
-        else
+        } else {
           ti.script_type = 'SPENDWITNESS';
+        }
       }
 
       this.logger.debug('using segwit %s', segwit);
@@ -594,7 +599,7 @@ class Hardware extends EventEmitter {
         inputs: [],
         bin_outputs: [],
         version: inputTX.version,
-        lock_time: inputTX.locktime,
+        lock_time: inputTX.locktime
       };
 
       // TODO: just turn into its own function
@@ -606,7 +611,7 @@ class Hardware extends EventEmitter {
           prev_hash: input.prevout.txid(),
           amount: coin.value,
           sequence: input.sequence,
-          script_sig: input.script.toRaw().toString('hex'),
+          script_sig: input.script.toRaw().toString('hex')
         });
       }
 
@@ -616,7 +621,7 @@ class Hardware extends EventEmitter {
 
         refTX.bin_outputs.push({
           amount: output.value,
-          script_pubkey: output.script.toRaw().toString('hex'),
+          script_pubkey: output.script.toRaw().toString('hex')
         });
       }
 
@@ -665,7 +670,8 @@ class Hardware extends EventEmitter {
   isSegwit(coin) {
     assert(coin, 'must provide coin');
     const type = coin.getType();
-    this.logger.debug('scriptPubKey: %s', coin.script ? coin.script.toString() : coin.script);
+    this.logger.debug('scriptPubKey: %s',
+      coin.script ? coin.script.toString() : coin.script);
     if (type === 'witnessscripthash' || type === 'witnesspubkeyhash')
       return true;
     return false;
@@ -711,9 +717,11 @@ class Hardware extends EventEmitter {
 
       const coin = coins[i];
 
-      const segwit = this.isSegwit(coin) || this.isNested(coin, redeem, input.witness);
+      const segwit =
+        this.isSegwit(coin) || this.isNested(coin, redeem, input.witness);
 
-      this.logger.debug('using redeem: %s', redeem ? redeem.toString('hex') : redeem);
+      this.logger.debug('using redeem: %s',
+        redeem ? redeem.toString('hex') : redeem);
       this.logger.debug('using segwit %s', segwit);
 
       const ledgerInput = new LedgerTXInput({
@@ -722,14 +730,13 @@ class Hardware extends EventEmitter {
         coin,
         path,
         index: input.prevout.index,
-        tx: inputTX,
+        tx: inputTX
       });
       ledgerInputs.push(ledgerInput);
     }
 
     return ledgerInputs;
   }
-
 
   /*
    *
@@ -739,7 +746,7 @@ class Hardware extends EventEmitter {
 
     const inputTXs = options.inputTXs || [];
     const coins = options.coins || [];
-    let paths = options.paths || [];
+    const paths = options.paths || [];
     const scripts = options.scripts || [];
     const enc = options.env || 'hex';
 
@@ -757,9 +764,11 @@ class Hardware extends EventEmitter {
       throw new Error('mtx must have view');
 
     try {
-      return await this._getSignature(mtx, inputTXs, coins, paths, scripts, enc);
+      return await
+        this._getSignature(mtx, inputTXs, coins, paths, scripts, enc);
     } catch (e) {
       this.logger.error(e.stack);
+      return false;
     } finally {
       unlock();
     }
@@ -771,10 +780,10 @@ class Hardware extends EventEmitter {
   async _getSignature(mtx, inputTXs, coins, paths, scripts, enc) {
     switch (this.vendor) {
       case vendors.LEDGER: {
-
-
-        const ledgerInputs = this.ledgerInputs(mtx, inputTXs, coins, paths, scripts);
-        const signatures = await this.device.getTransactionSignatures(mtx, mtx.view, ledgerInputs);
+        const ledgerInputs = this.ledgerInputs(mtx, inputTXs,
+          coins, paths, scripts);
+        const signatures = await this.device.getTransactionSignatures(mtx,
+          mtx.view, ledgerInputs);
 
         for (const sig of signatures)
           this.logger.debug('signature: %s', sig.toString('hex'));
@@ -785,7 +794,6 @@ class Hardware extends EventEmitter {
       }
 
       case vendors.TREZOR: {
-
         // can call this.signTransaction
         // and then return the signature
         // append SIGHASH_ALL
@@ -793,6 +801,8 @@ class Hardware extends EventEmitter {
         return [];
       }
     }
+
+    return false;
   }
 
   /*
@@ -839,7 +849,7 @@ class Hardware extends EventEmitter {
     if (options.logLevel) {
       this.logLevel = options.logLevel;
       if (!this.logger)
-        this.logger = new blgr(this.logLevel);
+        this.logger = new Logger(this.logLevel);
     }
 
     if (options.retry) {

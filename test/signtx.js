@@ -1,9 +1,14 @@
+/* eslint-env mocha */
+/* eslint prefer-arrow-callback: "off" */
+
+'use strict';
+
 const assert = require('bsert');
-const {WorkerPool,Chain,Mempool,KeyRing,Miner,protocol,MTX} = require('bcoin');
+const {WorkerPool,Chain,Mempool,Miner,protocol,MTX} = require('bcoin');
 const MemWallet = require('./utils/memwallet');
-const {deriveFromAccountHDPublicKey,p2pkhSignatureInputs} = require('./utils/common');
+const {p2pkhSignatureInputs} = require('./utils/common');
 const {Path,Hardware} = require('../lib/libsigner');
-const blgr = require('blgr');
+const Logger = require('blgr');
 
 /*
  * test signing
@@ -40,14 +45,14 @@ const witpath = Path.fromList([44,1,1], true);
  * each will have a standard key and a
  * witness key
  */
-let keys = {
+const keys = {
   standard: {},
-  witness: {},
+  witness: {}
 };
 
 // global instance of a logger
 // can be passed to Hardware instance
-const logger = new blgr('debug');
+const logger = new Logger('debug');
 
 /*
  * create a worker pool to make
@@ -68,7 +73,7 @@ const workers = new WorkerPool({
 const chain = new Chain({
   memory: true,
   workers,
-  network,
+  network
 });
 
 /*
@@ -80,7 +85,7 @@ const chain = new Chain({
 const mempool = new Mempool({
   chain,
   memory: true,
-  workers,
+  workers
 });
 
 /*
@@ -90,7 +95,7 @@ const mempool = new Mempool({
 const miner = new Miner({
   chain,
   version: 4,
-  workers,
+  workers
 });
 
 /*
@@ -119,7 +124,7 @@ describe('Signing Transactions', function () {
     protocol.consensus.COINBASE_MATURITY = 0;
     // only 1 BTC per block to force
     // transactions to use many inputs
-    protocol.consensus.BASE_REWARD = protocol.consensus.COIN * 1;
+    protocol.consensus.BASE_REWARD = Number(protocol.consensus.COIN);
 
     await logger.open();
     await workers.open();
@@ -129,7 +134,7 @@ describe('Signing Transactions', function () {
     hardware = Hardware.fromOptions({
       vendor: 'ledger',
       network,
-      logger,
+      logger
     });
 
     await hardware.initialize();
@@ -164,7 +169,7 @@ describe('Signing Transactions', function () {
       xpub: keys.standard.xpub,
       witness: false,
       watchOnly: true,
-      receiveDepth: 5,
+      receiveDepth: 5
     });
 
     /*
@@ -177,14 +182,14 @@ describe('Signing Transactions', function () {
       xpub: keys.witness.xpub,
       watchOnly: true,
       witness: true,
-      receiveDepth: 5,
+      receiveDepth: 5
     });
   });
 
   // be sure to close the hardware after the tests
   after(async () => {
     await hardware.close();
-  })
+  });
 
   it('should mine blocks to the standard wallet', async () => {
     for (let i = 0; i < 3; i++) {
@@ -208,19 +213,20 @@ describe('Signing Transactions', function () {
     const mtx = new MTX();
     mtx.addOutput({
       value: protocol.consensus.COIN,
-      address: wallet.getChange(),
+      address: wallet.getChange()
     });
 
     await wallet.fund(mtx, {
-      selection: 'random',
+      selection: 'random'
     });
 
-    const {paths,inputTXs,coins} = p2pkhSignatureInputs(mtx, wallet, path.clone());
+    const {paths, inputTXs, coins} =
+      p2pkhSignatureInputs(mtx, wallet, path.clone());
 
     const signed = await hardware.signTransaction(mtx, {
       paths,
       inputTXs,
-      coins,
+      coins
     });
 
     // verify the transaction
@@ -234,23 +240,24 @@ describe('Signing Transactions', function () {
     const mtx = new MTX();
     mtx.addOutput({
       value: protocol.consensus.COIN,
-      address: witwallet.getChange(),
+      address: witwallet.getChange()
     });
     mtx.addOutput({
       value: protocol.consensus.COIN,
-      address: witwallet.getChange(),
+      address: witwallet.getChange()
     });
 
     await witwallet.fund(mtx, {
-      selection: 'random',
+      selection: 'random'
     });
 
-    const {paths,inputTXs,coins} = p2pkhSignatureInputs(mtx, witwallet, witpath.clone());
+    const {paths, inputTXs, coins} =
+      p2pkhSignatureInputs(mtx, witwallet, witpath.clone());
 
     const signed = await hardware.signTransaction(mtx, {
       paths,
       inputTXs,
-      coins,
+      coins
     });
 
     // verify the transaction
@@ -273,20 +280,21 @@ describe('Signing Transactions', function () {
     for (let i = 0; i < 5; i++) {
       mtx.addOutput({
         value: protocol.consensus.COIN,
-        address: wallet.getChange(),
+        address: wallet.getChange()
       });
     }
 
     await wallet.fund(mtx, {
-      selection: 'random',
+      selection: 'random'
     });
 
-    const {paths,inputTXs,coins} = p2pkhSignatureInputs(mtx, wallet, path.clone());
+    const {paths, inputTXs, coins} =
+      p2pkhSignatureInputs(mtx, wallet, path.clone());
 
     const signed = await hardware.signTransaction(mtx, {
       paths,
       inputTXs,
-      coins,
+      coins
     });
 
     // verify the transaction

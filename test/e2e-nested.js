@@ -1,8 +1,13 @@
+/* eslint-env mocha */
+/* eslint prefer-arrow-callback: "off" */
+
+'use strict';
+
 const assert = require('bsert');
-const blgr = require('blgr');
-const {wallet,Network,protocol,FullNode,MTX,Coin} = require('bcoin');
-const {NodeClient,WalletClient} = require('bclient');
-const {Path,Hardware,prepareSign} = require('../lib/libsigner');
+const Logger = require('blgr');
+const {wallet, Network, protocol, FullNode} = require('bcoin');
+const {NodeClient, WalletClient} = require('bclient');
+const {Path, Hardware, prepareSign} = require('../lib/libsigner');
 
 /*
  * these tests test for spending from nested
@@ -17,10 +22,11 @@ const n = 'regtest';
 Network.set(n);
 const network = Network.get(n);
 
-const logger = new blgr('debug');
+const logger = new Logger('debug');
 
 let fullNode;
-let client;
+let nodeClient;
+let hardware;
 let walletClient;
 let primaryWallet;
 
@@ -42,23 +48,23 @@ describe('Nested Signing', function() {
       memory: true,
       workers: true,
       network: network.type,
-      witness: true,
+      witness: true
     });
 
     nodeClient = new NodeClient({
       port: network.rpcPort,
-      network: network.type,
+      network: network.type
     });
 
     walletClient = new WalletClient({
       port: network.walletPort,
-      network: network.type,
+      network: network.type
     });
 
     hardware = Hardware.fromOptions({
       vendor: 'ledger',
       network: network,
-      logger,
+      logger
     });
 
     fullNode.use(wallet.plugin);
@@ -75,8 +81,7 @@ describe('Nested Signing', function() {
   after(async () => {
     await fullNode.close();
     hardware.close();
-  })
-
+  });
 
   it('should start node and wallet', async () => {
     const info = await nodeClient.getInfo();
@@ -89,7 +94,6 @@ describe('Nested Signing', function() {
   /*
   */
   it('should create new segwit wallet', async () => {
-
     // get account key
     const pubkey = await hardware.getPublicKey(path);
     const accountKey = pubkey.xpubkey(network.type);
@@ -97,8 +101,8 @@ describe('Nested Signing', function() {
     const response = await walletClient.createWallet(walletId, {
       witness: true,
       watchOnly: true,
-      accountKey: accountKey,
-    })
+      accountKey: accountKey
+    });
 
     assert.ok(response);
 
@@ -114,7 +118,7 @@ describe('Nested Signing', function() {
     const {nestedAddress} = await walletClient.getAccount(walletId, 'default');
     const toMine = 4;
 
-    const mine = await nodeClient.execute('generatetoaddress', [toMine, nestedAddress]);
+    await nodeClient.execute('generatetoaddress', [toMine, nestedAddress]);
 
     const walletInfo = await walletClient.getAccount(walletId, 'default');
 
@@ -128,20 +132,20 @@ describe('Nested Signing', function() {
       account: 'default',
       rate: 1e3,
       outputs: [{ value: 1e4, address: receiveAddress }],
-      sign: false,
+      sign: false
     });
 
     const {coins,inputTXs,paths,mtx} = await prepareSign({
       tx: tx,
       wallet: walletClient.wallet(walletId),
       path,
-      network,
+      network
     });
 
     const signed = await hardware.signTransaction(mtx, {
       paths,
       inputTXs,
-      coins,
+      coins
     });
 
     assert.ok(signed.verify());

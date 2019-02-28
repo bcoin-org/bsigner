@@ -1,3 +1,5 @@
+'use strict';
+
 const assert = require('bsert');
 const blake2b = require('bcrypto/lib/blake2b');
 const {BufferMap} = require('buffer-map');
@@ -11,7 +13,7 @@ const vendors = {
   LEDGER: 'LEDGER',
   TREZOR: 'TREZOR',
   LOCAL: 'LOCAL',
-  ANY: 'ANY',
+  ANY: 'ANY'
 };
 
 const bip44 = {
@@ -20,9 +22,9 @@ const bip44 = {
     main: 0,
     testnet: 1,
     regtest: 1,
-    simnet: 1,
+    simnet: 1
   },
-  hardened: 0x80000000,
+  hardened: 0x80000000
 };
 
 // hardened can be
@@ -35,7 +37,7 @@ const bip44 = {
 function harden(value) {
   if (typeof value === 'string') {
     const suffix = value[value.length-1];
-    assert(suffix !== `'` || suffix !== 'h');
+    assert(suffix !== '\'' || suffix !== 'h');
     value = parseInt(value, 10);
   }
   return (value | bip44.hardened) >>> 0;
@@ -57,24 +59,24 @@ const HDVersionBytes = new BufferMap([
   // xpub: m'/44'/0'
   [networkKey('main'), [
     harden(bip44.purpose),
-    harden(bip44.coinType.main),
+    harden(bip44.coinType.main)
   ]],
   // tpub: m'/44'/1'
-  //0x043587cf
+  // 0x043587cf
   [networkKey('testnet'), [
     harden(bip44.purpose),
-    harden(bip44.coinType.testnet),
+    harden(bip44.coinType.testnet)
   ]],
   // tpub: m'/44'/1'
   [networkKey('regtest'), [
     harden(bip44.purpose),
-    harden(bip44.coinType.regtest),
+    harden(bip44.coinType.regtest)
   ]],
   // spub: m'/44'/1'
   [networkKey('simnet'), [
     harden(bip44.purpose),
-    harden(bip44.coinType.simnet),
-  ]],
+    harden(bip44.coinType.simnet)
+  ]]
 ]);
 
 /*
@@ -89,7 +91,7 @@ function parsePath(path, hard) {
   const parts = path.split('/');
   const root = parts[0];
 
-  if (root !== 'm' && root !== 'M' && root !== "m'" && root !== "M'") {
+  if (root !== 'm' && root !== 'M' && root !== 'm\'' && root !== 'M\'') {
     throw new Error('Invalid path root.');
   }
 
@@ -98,17 +100,21 @@ function parsePath(path, hard) {
   for (let i = 1; i < parts.length; i++) {
     let part = parts[i];
 
-    const hardened = part[part.length - 1] === "'";
+    const hardened = part[part.length - 1] === '\'';
 
-    if (hardened) part = part.slice(0, -1);
+    if (hardened)
+      part = part.slice(0, -1);
 
-    if (part.length > 10) throw new Error('Path index too large.');
+    if (part.length > 10)
+      throw new Error('Path index too large.');
 
-    if (!/^\d+$/.test(part)) throw new Error('Path index is non-numeric.');
+    if (!/^\d+$/.test(part))
+      throw new Error('Path index is non-numeric.');
 
     let index = parseInt(part, 10);
 
-    if (index >>> 0 !== index) throw new Error('Path index out of range.');
+    if (index >>> 0 !== index)
+      throw new Error('Path index out of range.');
 
     if (hardened) {
       index |= bip44.hardened;
