@@ -7,7 +7,6 @@
 'use strict';
 
 const EventEmitter = require('events');
-// const trezor = require('trezor.js');
 const bledger = require('bledger');
 const {LedgerBcoin,LedgerTXInput} = bledger;
 const {Device} = bledger.HID;
