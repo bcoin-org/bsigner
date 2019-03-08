@@ -21,7 +21,6 @@
   "author": "Mark Tyneway",
   "license": "MIT",
   "dependencies": {
-    "babel-runtime": "^6.26.0",
     "bcfg": "^0.1.5",
     "bclient": "^0.1.6",
     "bcoin": "git+https://github.com/bcoin-org/bcoin.git#a2e176d4",
