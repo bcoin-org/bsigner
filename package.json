@@ -1,6 +1,6 @@
 {
   "name": "bsigner",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "transaction signing support for bcoin",
   "main": "lib/bsigner.js",
   "scripts": {
