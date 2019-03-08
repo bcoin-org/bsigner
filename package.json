@@ -28,15 +28,14 @@
     "bcrypto": "3.0.1",
     "bledger": "git+https://github.com/bcoin-org/bledger.git",
     "blgr": "^0.1.5",
-    "bmultisig": "git+https://github.com/bcoin-org/bmultisig.git",
     "bmultisig-client": "git+https://github.com/bcoin-org/bmultisig-client.git",
     "bmutex": "^0.1.5",
     "bsert": "0.0.8",
     "bstring": "^0.3.5",
-    "buffer-map": "0.0.5",
-    "trezor.js": "^6.19.4"
+    "buffer-map": "0.0.5"
   },
   "devDependencies": {
-    "bmocha": "^1.0.1"
+    "bmocha": "^1.0.1",
+    "bmultisig": "git+https://github.com/bcoin-org/bmultisig.git"
   }
 }
