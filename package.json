@@ -24,7 +24,6 @@
     "babel-runtime": "^6.26.0",
     "bcfg": "^0.1.5",
     "bclient": "^0.1.6",
-    "bcoin": "git+https://github.com/bcoin-org/bcoin.git#a2e176d4",
     "bcrypto": "3.0.1",
     "bledger": "git+https://github.com/bcoin-org/bledger.git",
     "blgr": "^0.1.5",
@@ -35,6 +34,9 @@
     "bstring": "^0.3.5",
     "buffer-map": "0.0.5",
     "trezor.js": "^6.19.4"
+  },
+  "peerDependencies": {
+    "bcoin": "git+https://github.com/bcoin-org/bcoin.git#a2e176d4"
   },
   "devDependencies": {
     "bmocha": "^1.0.1"
