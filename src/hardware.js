@@ -184,7 +184,7 @@ class Hardware extends EventEmitter {
         try {
           const device = new Device({
             device: d,
-            timeout: 5000
+            timeout: 1e6
           });
 
           await device.open();
@@ -326,7 +326,7 @@ class Hardware extends EventEmitter {
     this.logger.debug('getting public key for path %s', path);
 
     try {
-      return await this._getPublicKey(path);
+      return await this._getPublicKey(path, true);
     } catch (e) {
       this.logger.debug(e.stack);
       return false;
