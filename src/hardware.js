@@ -309,6 +309,19 @@ class Hardware extends EventEmitter {
   }
 
   /*
+   * get serialized extended public key
+   * wraps Hardware.getPublicKey
+   * uses this.network
+   *
+   * @param path {String|[]Integer}
+   * @returns String
+   */
+  async getXPUB(path) {
+    const xpub = await this.getPublicKey(path);
+    return xpub.xpubkey(this.network);
+  }
+
+  /*
    * get public key with a lock
    * @param path {String|[]Integer}
    * @returns bcoin.HDPublicKey
