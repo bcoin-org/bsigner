@@ -339,7 +339,7 @@ class Hardware extends EventEmitter {
     this.logger.debug('getting public key for path %s', path);
 
     try {
-      return await this._getPublicKey(path, true);
+      return await this._getPublicKey(path);
     } catch (e) {
       this.logger.debug(e.stack);
       return false;
@@ -353,10 +353,10 @@ class Hardware extends EventEmitter {
    * @param path {String|[]Integer}
    * @returns bcoin.HDPublicKey
    */
-  async _getPublicKey(path) {
+  async _getPublicKey(path, getParentFingerPrint = true) {
     switch (this.vendor) {
       case vendors.LEDGER: {
-        return await this.device.getPublicKey(path);
+        return await this.device.getPublicKey(path, getParentFingerPrint);
       }
       case vendors.TREZOR: {
         throw new Error('temporarily unsupported');
