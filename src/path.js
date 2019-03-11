@@ -16,28 +16,140 @@ const {parsePath, bip44, HDVersionBytes, harden} = require('./common');
 /*
  * Path class for handling bip44 paths
  *
+ * - can dynamically set each of purpose,
+ *   coin, account, branch and index
+ * - strict mode prevents some improper usage
+ * - understands ' and h syntax
+ *
  */
 class Path {
   constructor() {
     this.list = [];
-    this.str = 'm';
 
     this.strict = true;
     this.mutable = true;
 
-    this.depth = 0;
-
-    this.purpose = null;
-    this.coin = null;
-    this.account = null;
     this.network = null;
 
-    this.branch = null;
-    this.index = null;
+    this.depth = 0;
+    this._purpose = null;
+    this._coin = null;
+    this._account = null;
+    this._branch = null;
+    this._index = null;
+  }
+
+  get purpose() {
+    return this._purpose;
   }
 
   /*
-   *
+   * update the class property
+   * increment the depth if necessary
+   * change the value in the list if necessary
+   */
+
+  set purpose(value) {
+    if (value === null) {
+      this._purpose = null;
+      return;
+    }
+
+    if (typeof value === 'string')
+      value = fromNumberLike(value);
+    assert(0 <= value);
+
+    this._purpose = value;
+    if (this.depth === 0)
+      this.depth = 1;
+
+    this.list[0] = value;
+  }
+
+  get coin() {
+    return this._coin;
+  }
+
+  set coin(value) {
+    if (value === null) {
+      this._coin = null;
+      return;
+    }
+
+    if (typeof value === 'string')
+      value = fromNumberLike(value);
+    assert(0 <= value);
+
+    if (this.depth === 1)
+      this.depth = 2;
+
+    this._coin = value;
+    this.list[1] = value;
+  }
+
+  get account() {
+    return this._account;
+  }
+
+  set account(value) {
+    if (value === null) {
+      this._account = null;
+      return;
+    }
+
+    if (typeof value === 'string')
+      value = fromNumberLike(value);
+    assert(0 <= value);
+
+    this._account = value;
+    if (this.depth === 2)
+      this.depth = 3;
+    this.list[2] = value;
+  }
+
+  get branch() {
+    return this._branch;
+  }
+
+  set branch(value) {
+    if (value === null) {
+      this._branch = null;
+      return;
+    }
+
+    if (typeof value === 'string')
+      value = fromNumberLike(value);
+    assert(0 <= value);
+
+    this._branch = value;
+    if (this.depth === 3)
+      this.depth = 4;
+    this.list[3] = value;
+  }
+
+  get index() {
+    return this._index;
+  }
+
+  set index(value) {
+    if (value === null) {
+      this._index = null;
+      return;
+    }
+
+    if (typeof value === 'string')
+      value = fromNumberLike(value);
+    assert(0 <= value);
+
+    this._index = value;
+    if (this.depth === 4)
+      this.depth = 5;
+    this.list[4] = value;
+  }
+
+
+  /*
+   * create a Path from a list of integers
    */
   fromList(path, hardened) {
     assert(Array.isArray(path));
@@ -46,14 +158,8 @@ class Path {
     if (hardened)
       path = path.map(i => ((i | bip44.hardened) >>> 0));
 
-    const str = ['m\''];
-
     for (const [i, uint] of Object.entries(path)) {
       assert((uint >>> 0) === uint);
-      if ((uint & bip44.hardened) >>> 0)
-        str.push((uint ^ bip44.hardened) + '\'');
-      else
-        str.push(uint);
 
       switch (i) {
         case '0':
@@ -74,7 +180,6 @@ class Path {
       }
     }
 
-    this.str = str.join('/');
     this.list = path.slice();
     this.depth = this.list.length;
 
@@ -92,41 +197,40 @@ class Path {
    * note: this doesn't harden by default
    */
   fromOptions(options) {
-    this.purpose = parseOption(options.purpose);
-    this.account = parseOption(options.account);
+    const purpose = parseOption(options.purpose);
+    const account = parseOption(options.account);
 
     // prioritize using the network
     // over passed in coin type
     // since that isn't a common usecase
-    if (options.network) {
-      const coin = bip44.coinType[options.network];
-      // the spec hardens the coin type
-      this.coin = Path.harden(coin);
-      this.network = options.network;
-    } else
-      this.coin = parseOption(options.coin);
+    const coin = options.network ?
+      Path.harden(bip44.coinType[options.network]) :
+      parseOption(options.coin);
 
-    this.branch = parseOption(options.branch);
-    this.index = parseOption(options.index);
+    if (options.network)
+      this.network = options.network;
+
+    const branch = parseOption(options.branch);
+    const index = parseOption(options.index);
 
     if (options.strict)
       this.strict = options.strict;
 
-    assert(this.purpose !== null);
-    assert(this.account !== null);
-    assert(this.coin !== null);
+    assert(purpose !== null);
+    assert(account !== null);
+    assert(coin !== null);
 
     // follow bip44 ordering
     const list = [
-      this.purpose,
-      this.coin,
-      this.account
+      purpose,
+      coin,
+      account
     ];
 
     // either add both or add neither
-    if (this.branch !== null && this.index !== null) {
-      list.push(this.branch);
-      list.push(this.index);
+    if (branch !== null && index !== null) {
+      list.push(branch);
+      list.push(index);
     }
 
     return this.fromList(list);
@@ -151,20 +255,22 @@ class Path {
    * mainnet
    */
   fromIndex(index, hardened = true) {
-    if (!this.purpose)
-      this.purpose = Path.harden(44);
-    if (!this.coin)
-      this.coin = Path.harden(0);
+    const purpose = this.purpose !== null ?
+      this.purpose :
+      Path.harden(44);
 
-    if (hardened)
-      this.account = Path.harden(index);
-    else
-      this.account = index;
+    const coin = this.coin !== null ?
+      this.coin :
+      Path.harden(0);
+
+    const account = hardened ?
+      Path.harden(index) :
+      index;
 
     return this.fromList([
-      this.purpose,
-      this.coin,
-      this.account
+      purpose,
+      coin,
+      account
     ]);
   }
 
@@ -180,7 +286,17 @@ class Path {
   }
 
   toString() {
-    return this.str;
+    const str = ['m\''];
+
+    for (const [i, uint] of Object.entries(this.list)) {
+      assert((uint >>> 0) === uint);
+      if ((uint & bip44.hardened) >>> 0)
+        str.push((uint ^ bip44.hardened) + '\'');
+      else
+        str.push(uint);
+    }
+
+    return str.join('/');
   }
 
   [inspect]() {
@@ -269,17 +385,12 @@ class Path {
       throw new Error('cannot mutate finalized path');
 
     if (typeof index === 'string')
-      index = parseInt(index, 10);
+      index = fromNumberLike(index);
+
     assert((index >>> 0) === index);
 
-    if (hardened) {
-      // append hardened string
-      this.str += `/${index}'`;
-      // harden the index
-      index |= bip44.hardened;
-      index >>>= 0;
-    } else
-      this.str += `/${index}`;
+    if (hardened)
+      index = Path.harden(index)
 
     this.list.push(index);
     this.depth += 1;

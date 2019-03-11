@@ -225,7 +225,51 @@ async function guessPath(hardware, wallet, network) {
   return target;
 }
 
+/*
+ * builds a list of known keys and
+ * creates a mapping of key -> path
+ * if the key is unknown, the path
+ * will be null
+ *
+ * @param {bsigner#Hardware}
+ * @param {bclient#WalletClient#wallet}
+ * @returns {Object}
+ */
+async function getKnownPaths(hardware, wallet) {
+  const out = {
+    keys: [],
+    paths: {}
+  }
+
+  assert(hardware, 'must pass hardware');
+  assert(wallet, 'must pass wallet');
+  const info = await wallet.getAccount();
+  if (!info)
+    throw new Error('could not fetch account info');
+
+  const keys = new Set([info.accountKey, ...info.keys]);
+
+  for (const key of keys.values()) {
+    for (const purpose of [44, 48]) {
+      const path = Path.fromAccountPublicKey(key);
+      path.purpose = purpose;
+
+      const xkey = await hardware.getXPUB(path);
+
+      if (keys.has(xkey)) {
+        out.keys.push(xkey);
+        out.paths[xkey] = path.toString();
+      } else {
+        out.paths[xkey] = null;
+      }
+    }
+  }
+
+  return out;
+}
+
 exports.prepareSign = prepareSign;
 exports.prepareSignMultisig = prepareSignMultisig;
 exports.generateToken = generateToken;
 exports.guessPath = guessPath;
+exports.getKnownPaths = getKnownPaths;

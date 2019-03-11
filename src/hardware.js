@@ -7,7 +7,6 @@
 'use strict';
 
 const EventEmitter = require('events');
-// const trezor = require('trezor.js');
 const bledger = require('bledger');
 const {LedgerBcoin,LedgerTXInput} = bledger;
 const {Device} = bledger.HID;
@@ -185,7 +184,7 @@ class Hardware extends EventEmitter {
         try {
           const device = new Device({
             device: d,
-            timeout: 5000
+            timeout: 1e6
           });
 
           await device.open();
@@ -310,6 +309,19 @@ class Hardware extends EventEmitter {
   }
 
   /*
+   * get serialized extended public key
+   * wraps Hardware.getPublicKey
+   * uses this.network
+   *
+   * @param path {String|[]Integer}
+   * @returns String
+   */
+  async getXPUB(path) {
+    const xpub = await this.getPublicKey(path);
+    return xpub.xpubkey(this.network);
+  }
+
+  /*
    * get public key with a lock
    * @param path {String|[]Integer}
    * @returns bcoin.HDPublicKey
@@ -341,10 +353,10 @@ class Hardware extends EventEmitter {
    * @param path {String|[]Integer}
    * @returns bcoin.HDPublicKey
    */
-  async _getPublicKey(path) {
+  async _getPublicKey(path, getParentFingerPrint = true) {
     switch (this.vendor) {
       case vendors.LEDGER: {
-        return await this.device.getPublicKey(path);
+        return await this.device.getPublicKey(path, getParentFingerPrint);
       }
       case vendors.TREZOR: {
         throw new Error('temporarily unsupported');
