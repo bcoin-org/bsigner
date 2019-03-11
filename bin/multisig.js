@@ -226,10 +226,7 @@ class CLI {
 
       const {paths,inputTXs,coins,scripts,mtx} = await prepareSignMultisig({
         pmtx,
-        network,
         path: this.path,
-        wallet: this.wallet,
-        hardware: this.hardware
       });
 
       const signatures = await this.hardware.getSignature(mtx, {
