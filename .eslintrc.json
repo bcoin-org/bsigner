@@ -84,7 +84,7 @@
       "ignoreReadBeforeAssign": true
     }],
     "prefer-template": "off",
-    "quotes": ["error", "single"],
+    "quotes": ["error", "single", { "allowTemplateLiterals": true }],
     "semi": ["error", "always"],
     "spaced-comment": ["error", "always", {
       "exceptions": ["!"]

@@ -239,7 +239,7 @@ async function getKnownPaths(hardware, wallet) {
   const out = {
     keys: [],
     paths: {}
-  }
+  };
 
   assert(hardware, 'must pass hardware');
   assert(wallet, 'must pass wallet');

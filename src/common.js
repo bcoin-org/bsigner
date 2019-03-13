@@ -106,7 +106,7 @@ function parsePath(path, hard) {
   for (let i = 1; i < parts.length; i++) {
     let part = parts[i];
 
-    const last = part[part.length - 1]
+    const last = part[part.length - 1];
     const hardened = last === '\'' || last === 'h';
 
     if (hardened)

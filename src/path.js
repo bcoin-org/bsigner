@@ -147,7 +147,6 @@ class Path {
     this.list[4] = value;
   }
 
-
   /*
    * create a Path from a list of integers
    */
@@ -390,7 +389,7 @@ class Path {
     assert((index >>> 0) === index);
 
     if (hardened)
-      index = Path.harden(index)
+      index = Path.harden(index);
 
     this.list.push(index);
     this.depth += 1;

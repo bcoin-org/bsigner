@@ -433,7 +433,7 @@ describe('Path', function () {
     assert.deepEqual(list1, [
       Path.harden(47),
       Path.harden(5353),
-      Path.harden(0),
+      Path.harden(0)
     ]);
 
     path.coin = '0h';
