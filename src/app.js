@@ -250,17 +250,17 @@ async function getKnownPaths(hardware, wallet) {
   const keys = new Set([info.accountKey, ...info.keys]);
 
   for (const key of keys.values()) {
+    // set the initial value to null
+    out.paths[key] = null;
     for (const purpose of [44, 48]) {
       const path = Path.fromAccountPublicKey(key);
-      path.purpose = purpose;
+      path.purpose = Path.harden(purpose);
 
       const xkey = await hardware.getXPUB(path);
 
       if (keys.has(xkey)) {
         out.keys.push(xkey);
         out.paths[xkey] = path.toString();
-      } else {
-        out.paths[xkey] = null;
       }
     }
   }

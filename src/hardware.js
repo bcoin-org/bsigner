@@ -25,8 +25,6 @@ const {Path} = require('./path');
  * Hardware Class
  * wrapper around ledger and trezor
  * hardware wallets
- *
- * TODO: implement LOCAL flag
  */
 class Hardware extends EventEmitter {
   constructor(options) {
@@ -36,9 +34,6 @@ class Hardware extends EventEmitter {
     this.logger = new Logger();
     this.lock = new Lock(false);
     this.device = null;
-    this.retry = false;
-    this.retryCount = 3;
-    this.retries = 0;
     this.network = null;
     this.trezordDebug = false;
 
@@ -373,10 +368,6 @@ class Hardware extends EventEmitter {
    */
   async signTransaction(tx, options) {
     this.ensureInitialized();
-    // TODO: validate options
-    // TODO: validate tx
-    // TODO: validate paths
-    // TODO: validate scripts
 
     // trezor only works with main and testnet
     // because it relies on their bitcore
@@ -757,7 +748,8 @@ class Hardware extends EventEmitter {
   }
 
   /*
-   *
+   * sign a transaction and return a signature
+   * with a lock
    */
   async getSignature(mtx, options) {
     this.ensureInitialized();
@@ -793,7 +785,7 @@ class Hardware extends EventEmitter {
   }
 
   /*
-   *
+   * sign a transaction and return a signature
    */
   async _getSignature(mtx, inputTXs, coins, paths, scripts, enc) {
     switch (this.vendor) {
@@ -841,8 +833,6 @@ class Hardware extends EventEmitter {
    * @param options.network {String}
    * @param options.logger {blgr.Logger}
    * @param options.logLevel {String}
-   * @param options.retry {Boolean}
-   * @param options.retryCount {Integer}
    */
   fromOptions(options) {
     if (!options.vendor)
@@ -869,14 +859,6 @@ class Hardware extends EventEmitter {
       if (!this.logger)
         this.logger = new Logger(this.logLevel);
     }
-
-    if (options.retry) {
-      assert(typeof options.retry === 'boolean');
-      this.retry = true;
-    }
-
-    if (options.retryCount)
-      this.retryCount = options.retryCount;
 
     if (options.trezordDebug) {
       assert(typeof options.trezordDebug === 'boolean');
