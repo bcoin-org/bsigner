@@ -361,6 +361,26 @@ class Hardware extends EventEmitter {
     }
   }
 
+  /**
+   * Sign arbitrary messages
+   * @param  {Buffer} message Message to sign
+   * @param  {[Number[]|String]} path Full derivation path
+   * @returns {Promise}
+   */
+
+  async signMessage(message, path) {
+    assert(this.vendor === vendors.LEDGER, 'Only Ledger supports signMessage');
+
+    switch (this.vendor) {
+      case vendors.LEDGER: {
+        this.logger.debug('Signing message at %s', path);
+        return await this.device.signMessage(path, message);
+      }
+    }
+
+    return false;
+  }
+
   /*
    * sign transaction with a lock
    * and validate options
