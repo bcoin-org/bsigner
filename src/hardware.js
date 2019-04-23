@@ -368,7 +368,8 @@ class Hardware extends EventEmitter {
    * @returns {Promise}
    */
 
-  async signMessage(message, path) {
+  async signMessage(path, message) {
+    assert(Buffer.isBuffer(message), 'Message must be a buffer');
     assert(this.vendor === vendors.LEDGER, 'Only Ledger supports signMessage');
 
     switch (this.vendor) {
