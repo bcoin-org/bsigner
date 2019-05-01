@@ -23,7 +23,6 @@
   "dependencies": {
     "bcfg": "^0.1.6",
     "bclient": "^0.1.7",
-    "bcoin": "git+https://github.com/bcoin-org/bcoin.git#master",
     "bcrypto": "3.1.6",
     "bledger": "git+https://github.com/bcoin-org/bledger.git#hid-ng-latest",
     "blgr": "^0.1.7",
@@ -32,6 +31,9 @@
     "bsert": "0.0.10",
     "bstring": "^0.3.8",
     "buffer-map": "0.0.5"
+  },
+  "peerDependencies": {
+    "bcoin": "github:bcoin-org/bcoin#master"
   },
   "devDependencies": {
     "bmocha": "^1.0.1",
