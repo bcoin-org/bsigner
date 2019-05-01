@@ -287,7 +287,7 @@ class Path {
   toString() {
     const str = ['m\''];
 
-    for (const [i, uint] of Object.entries(this.list)) {
+    for (const [,uint] of Object.entries(this.list)) {
       assert((uint >>> 0) === uint);
       if ((uint & bip44.hardened) >>> 0)
         str.push((uint ^ bip44.hardened) + '\'');
