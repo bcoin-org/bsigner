@@ -125,29 +125,21 @@ async function prepareSign(options) {
   };
 }
 
-/*
+/**
  * build data structures required
  * for multisig signing
  *
- * @param {Object} - options
- * @param {bmultisig#pmtx} - options.pmtx
- *   result of GET proposal mtx
- * @param {Object} - options.pmtx.tx
- * @param {[]Object} - options.pmtx.paths
- * @param {Number} - options.pmtx.paths.branch
- * @param {Number} - options.pmtx.paths.index
- * @param {[]Buffer} - options.scripts
+ * @param {bmultisig#pmtx} - tx
+ *   result of GET proposal mtx w/ options
  * @param {bsigner#Path} - options.path
  * @returns {Object}
  */
-async function prepareSignMultisig(options) {
-  const {pmtx, path} = options;
 
-  assert(pmtx.tx, 'must pass tx');
-  assert(pmtx.paths, 'must pass paths');
-  assert(pmtx.scripts, 'must pass scripts');
-  assert(pmtx.txs, 'must pass txs');
+async function prepareSignMultisig(tx, path) {
+  assert(tx, 'must pass tx');
+  assert(Path.isPath(path), 'must pass Path instance');
 
+  const mtx = MTX.fromJSON(tx);
   const out = {
     paths: [],
     inputTXs: [],
@@ -155,26 +147,22 @@ async function prepareSignMultisig(options) {
     scripts: []
   };
 
-  assert(Path.isPath(path), 'must pass Path instance');
-
-  const mtx = MTX.fromJSON(pmtx.tx);
-
-  for (const [i, input] of Object.entries(pmtx.tx.inputs)) {
+  for (const input of tx.inputs) {
     // handle path
-    const {branch,index} = pmtx.paths[i];
-    const keypath = path.clone().push(branch).push(index);
+    const p = input.coin.path;
+    if (!p)
+      continue;
+
+    const keypath = path.clone().push(p.branch).push(p.index);
     out.paths.push(keypath);
+    out.scripts.push(input.script);
+    out.inputTXs.push(MTX.fromRaw(input.tx, 'hex'));
 
-    // build input tx
-    out.inputTXs.push(MTX.fromRaw(pmtx.txs[i], 'hex'));
-
-    // handle script
-    out.scripts.push(pmtx.scripts[i]);
-
-    // handle coin
     const coin = Coin.fromJSON(input.coin);
     out.coins.push(coin);
   }
+
+  assert(out.paths.length > 0, 'TX details missing');
 
   return {
     mtx,
