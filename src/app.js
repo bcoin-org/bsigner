@@ -155,7 +155,7 @@ async function prepareSignMultisig(tx, path) {
 
     const keypath = path.clone().push(p.branch).push(p.index);
     out.paths.push(keypath);
-    out.scripts.push(input.script);
+    out.scripts.push(input.coin.script);
     out.inputTXs.push(MTX.fromRaw(input.tx, 'hex'));
 
     const coin = Coin.fromJSON(input.coin);
