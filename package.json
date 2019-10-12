@@ -23,18 +23,17 @@
   "dependencies": {
     "bcfg": "^0.1.5",
     "bclient": "^0.1.6",
-    "bcoin": "git+https://github.com/bcoin-org/bcoin.git#a2e176d4",
-    "bcrypto": "3.0.1",
-    "bledger": "git+https://github.com/bcoin-org/bledger.git",
+    "bcoin": "github:bcoin-org/bcoin#75722469",
+    "bcrypto": "^3.1.11",
+    "bmultisig": "2.0.0-beta.1",
+    "bledger": "^0.3.0",
     "blgr": "^0.1.5",
-    "bmultisig-client": "git+https://github.com/bcoin-org/bmultisig-client.git",
     "bmutex": "^0.1.5",
     "bsert": "0.0.8",
     "bstring": "^0.3.5",
     "buffer-map": "0.0.5"
   },
   "devDependencies": {
-    "bmocha": "^1.0.1",
-    "bmultisig": "git+https://github.com/bcoin-org/bmultisig.git"
+    "bmocha": "^1.0.1"
   }
 }
