@@ -11,7 +11,7 @@ const {wallet, Network, protocol, FullNode} = require('bcoin');
 const {NodeClient} = require('bclient');
 const bmultisig = require('bmultisig/lib/bmultisig');
 const Proposal = require('bmultisig/lib/primitives/proposal');
-const {MultisigClient} = require('bmultisig-client');
+const MultisigClient = require('bmultisig/lib/client');
 
 /*
  * file level constants and globals

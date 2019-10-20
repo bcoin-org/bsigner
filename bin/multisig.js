@@ -4,7 +4,7 @@
 
 const Config = require('bcfg');
 const {Network} = require('bcoin');
-const {MultisigClient} = require('bmultisig-client');
+const MultisigClient = require('bmultisig/lib/client');
 const Logger = require('blgr');
 
 const {Path} = require('../src/path');
@@ -226,7 +226,7 @@ class CLI {
 
       const {paths,inputTXs,coins,scripts,mtx} = await prepareSignMultisig({
         pmtx,
-        path: this.path,
+        path: this.path
       });
 
       const signatures = await this.hardware.getSignature(mtx, {

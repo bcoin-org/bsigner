@@ -1,7 +1,10 @@
 'use strict';
 
-const {HDPublicKey,KeyRing} = require('bcoin');
+const path = require('path');
 const assert = require('bsert');
+const {HDPublicKey,KeyRing} = require('bcoin');
+const {tmpdir} = require('os');
+const {randomBytes} = require('bcrypto/lib/random');
 
 /*
  * @param {options}
@@ -79,5 +82,13 @@ function p2pkhSignatureInputs(mtx, wallet, accountPath) {
   };
 }
 
+function testdir(name) {
+  assert(/^[a-z]+$/.test(name), 'Invalid name');
+
+  const uniq = randomBytes(4).toString('hex');
+  return path.join(tmpdir(), `bcoin-test-${name}-${uniq}`);
+};
+
 exports.deriveFromAccountHDPublicKey = deriveFromAccountHDPublicKey;
 exports.p2pkhSignatureInputs = p2pkhSignatureInputs;
+exports.testdir = testdir;

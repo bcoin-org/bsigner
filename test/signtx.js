@@ -4,9 +4,17 @@
 'use strict';
 
 const assert = require('bsert');
-const {WorkerPool,Chain,Mempool,Miner,protocol,MTX} = require('bcoin');
+const {
+  WorkerPool,
+  Chain,
+  Mempool,
+  Miner,
+  protocol,
+  MTX,
+  blockstore
+} = require('bcoin');
 const MemWallet = require('./utils/memwallet');
-const {p2pkhSignatureInputs} = require('./utils/common');
+const {p2pkhSignatureInputs, testdir} = require('./utils/common');
 const {Path,Hardware} = require('../lib/bsigner');
 const Logger = require('blgr');
 
@@ -62,6 +70,25 @@ const workers = new WorkerPool({
   enabled: true
 });
 
+/**
+ * Testdir is required for blocks,
+ * but it wont be used because we are
+ * using memory: true.
+ */
+
+const location = testdir('blockstore');
+
+/**
+ * Blockstore is necessary for new bcoin Chain
+ */
+
+const blocks = blockstore.create({
+  memory: true,
+  network,
+  prefix: location,
+  logger
+});
+
 /*
  * create an in memory chain
  * to share with the miner
@@ -72,6 +99,8 @@ const workers = new WorkerPool({
  */
 const chain = new Chain({
   memory: true,
+  blocks,
+  logger,
   workers,
   network
 });
@@ -128,6 +157,7 @@ describe('Signing Transactions', function () {
 
     await logger.open();
     await workers.open();
+    await blocks.open();
     await chain.open();
     await mempool.open();
 

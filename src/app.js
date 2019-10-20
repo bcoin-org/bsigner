@@ -24,6 +24,7 @@ const {Path} = require('./path');
 async function generateToken(hardware, path, enc) {
   if (!path)
     throw new Error('must provide a path');
+
   const hdpubkey = await hardware.getPublicKey(path);
   const token = hash(hdpubkey.publicKey);
   if (enc === 'hex')
@@ -239,7 +240,7 @@ async function getKnownPaths(hardware, wallet) {
   const out = {
     keys: [],
     paths: {}
-  }
+  };
 
   assert(hardware, 'must pass hardware');
   assert(wallet, 'must pass wallet');

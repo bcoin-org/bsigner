@@ -8,7 +8,7 @@ const {Hardware} = require('../lib/bsigner');
     network: 'regtest'
   });
 
-  hardware.on('connect', async ({vendor,fingerprint}) => {
+  hardware.on('connect', ({vendor,fingerprint}) => {
     console.log(`connect - vendor: ${vendor}, fingerprint: ${fingerprint}`);
   });
 
