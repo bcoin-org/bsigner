@@ -5,8 +5,8 @@
 
 const assert = require('bsert');
 
-const {Path} = require('../src/path');
-const {bip44} = require('../src/common');
+const {Path} = require('../lib/path');
+const {bip44} = require('../lib/common');
 const {testxpub} = require('./utils/key');
 
 describe('Path', function () {
