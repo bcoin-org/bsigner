@@ -4,10 +4,10 @@
 'use strict';
 
 const assert = require('bsert');
-const Logger = require('blgr');
 const {Network} = require('bcoin');
-const {Path,Hardware} = require('../lib/bsigner');
+const {Path, DeviceManager, vendors} = require('../lib/bsigner');
 const {testxpub} = require('./utils/key');
+const {getLogger} = require('./utils/common');
 
 /*
  * these tests require the use of a common seed between
@@ -17,7 +17,7 @@ const {testxpub} = require('./utils/key');
  */
 
 const network = Network.get('regtest');
-const logger = new Logger('debug');
+const logger = getLogger();
 
 /*
  * use the network to parse the coinType
@@ -25,14 +25,14 @@ const logger = new Logger('debug');
  */
 function getPath(accountIndex, network) {
   const coinType = network.keyPrefix.coinType;
-  const path = Path.fromList([44,coinType,accountIndex], true);
+  const path = Path.fromList([44, coinType, accountIndex], true);
   return path;
 }
 
 // use hardware global so it
 // can be properly closed after
 // the tests
-let hardware;
+let manager;
 
 describe('Get Public Key', function () {
   this.timeout(1e7);
@@ -42,22 +42,24 @@ describe('Get Public Key', function () {
   });
 
   afterEach(async () => {
-    await hardware.close();
+    if (manager.opened)
+      await manager.close();
   });
 
-  it('should get public key from ledger', async ($) => {
-    hardware = Hardware.fromOptions({
-      vendor: 'ledger',
-      network,
-      logger
+  it('should get public key from ledger', async () => {
+    manager = DeviceManager.fromOptions({
+      vendor: vendors.LEDGER,
+      logger,
+      network
     });
 
-    await hardware.initialize();
+    await manager.open();
+    await manager.selectDevice(vendors.LEDGER);
 
     for (let i = 0; i <= 0; i++) {
       const accountIndex = i;
       const path = getPath(accountIndex, network);
-      const pubkey = await hardware.getPublicKey(path);
+      const pubkey = await manager.getPublicKey(path);
 
       const testpubkey = testxpub(accountIndex, network);
 
@@ -77,29 +79,25 @@ describe('Get Public Key', function () {
           assert.deepEqual(value, testpubkey[key]);
       }
 
-      /*
-       * TODO: need fix to export parentFingerPrint
       const xpub = pubkey.xpubkey(network.type);
       const expected = testpubkey.xpubkey(network.type);
       assert.equal(xpub, expected);
-      */
     }
   });
 
-  it('should get public key from trezor', async ($) => {
-    // $.skip();
+  it.skip('should get public key from trezor', async () => {
     const accountIndex = 0;
     const path = getPath(accountIndex, network);
 
-    hardware = Hardware.fromOptions({
+    manager = DeviceManager.fromOptions({
       vendor: 'trezor',
       network,
       logger
     });
 
-    await hardware.initialize();
+    await manager.initialize();
 
-    const pubkey = await hardware.getPublicKey(path);
+    const pubkey = await manager.getPublicKey(path);
     const testpubkey = testxpub(accountIndex, network);
 
     for (const [key,value] of Object.entries(pubkey)) {

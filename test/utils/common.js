@@ -2,9 +2,16 @@
 
 const path = require('path');
 const assert = require('bsert');
+const Logger = require('blgr');
 const {HDPublicKey,KeyRing} = require('bcoin');
 const {tmpdir} = require('os');
 const {randomBytes} = require('bcrypto/lib/random');
+
+function getLogger() {
+  const level = process.env.TEST_LOGLEVEL ? process.env.TEST_LOGLEVEL : 'none';
+
+  return new Logger(level);
+}
 
 /*
  * @param {options}
@@ -92,3 +99,4 @@ function testdir(name) {
 exports.deriveFromAccountHDPublicKey = deriveFromAccountHDPublicKey;
 exports.p2pkhSignatureInputs = p2pkhSignatureInputs;
 exports.testdir = testdir;
+exports.getLogger = getLogger;

@@ -14,9 +14,8 @@ const {
   blockstore
 } = require('bcoin');
 const MemWallet = require('./utils/memwallet');
-const {p2pkhSignatureInputs, testdir} = require('./utils/common');
-const {Path,Hardware} = require('../lib/bsigner');
-const Logger = require('blgr');
+const {getLogger, p2pkhSignatureInputs, testdir} = require('./utils/common');
+const {Path, DeviceManager, vendors} = require('../lib/bsigner');
 
 /*
  * test signing
@@ -32,7 +31,7 @@ const Logger = require('blgr');
  * initialize hardware in the before clause
  * and get an address to give to the miner
  */
-let hardware;
+let manager;
 
 // MemWallet instance globals
 // with and without segwit
@@ -45,8 +44,8 @@ const network = 'regtest';
 // paths for bip44 account xpubs
 // use different accounts so that utxos
 // can be separated
-const path = Path.fromList([44,1,0], true);
-const witpath = Path.fromList([44,1,1], true);
+const path = Path.fromList([44, 1, 0], true);
+const witpath = Path.fromList([44, 1, 1], true);
 
 /*
  * globals for key generation in before hook
@@ -59,8 +58,8 @@ const keys = {
 };
 
 // global instance of a logger
-// can be passed to Hardware instance
-const logger = new Logger('debug');
+// can be passed to Manager instance
+const logger = getLogger();
 
 /*
  * create a worker pool to make
@@ -161,13 +160,17 @@ describe('Signing Transactions', function () {
     await chain.open();
     await mempool.open();
 
-    hardware = Hardware.fromOptions({
-      vendor: 'ledger',
+    manager = DeviceManager.fromOptions({
+      vendor: vendors.LEDGER,
       network,
-      logger
+      logger,
+      [vendors.LEDGER]: {
+        timeout: 0
+      }
     });
 
-    await hardware.initialize();
+    await manager.open();
+    await manager.selectDevice(vendors.LEDGER);
 
     /*
      * NOTE: assignment to a global
@@ -176,14 +179,14 @@ describe('Signing Transactions', function () {
      */
     {
       // standard p2pkh transactions
-      const hdpubkey = await hardware.getPublicKey(path);
+      const hdpubkey = await manager.getPublicKey(path);
       const xpub = hdpubkey.xpubkey(network);
       keys.standard.xpub = xpub;
       keys.standard.hdpubkey = hdpubkey;
     }
     {
       // standard p2wpkh transactions
-      const hdpubkey = await hardware.getPublicKey(witpath);
+      const hdpubkey = await manager.getPublicKey(witpath);
       const xpub = hdpubkey.xpubkey(network);
       keys.witness.xpub = xpub;
       keys.witness.hdpubkey = hdpubkey;
@@ -218,7 +221,7 @@ describe('Signing Transactions', function () {
 
   // be sure to close the hardware after the tests
   after(async () => {
-    await hardware.close();
+    await manager.close();
   });
 
   it('should mine blocks to the standard wallet', async () => {
@@ -253,7 +256,7 @@ describe('Signing Transactions', function () {
     const {paths, inputTXs, coins} =
       p2pkhSignatureInputs(mtx, wallet, path.clone());
 
-    const signed = await hardware.signTransaction(mtx, {
+    const signed = await manager.signTransaction(mtx, {
       paths,
       inputTXs,
       coins
@@ -284,7 +287,7 @@ describe('Signing Transactions', function () {
     const {paths, inputTXs, coins} =
       p2pkhSignatureInputs(mtx, witwallet, witpath.clone());
 
-    const signed = await hardware.signTransaction(mtx, {
+    const signed = await manager.signTransaction(mtx, {
       paths,
       inputTXs,
       coins
@@ -321,7 +324,7 @@ describe('Signing Transactions', function () {
     const {paths, inputTXs, coins} =
       p2pkhSignatureInputs(mtx, wallet, path.clone());
 
-    const signed = await hardware.signTransaction(mtx, {
+    const signed = await manager.signTransaction(mtx, {
       paths,
       inputTXs,
       coins

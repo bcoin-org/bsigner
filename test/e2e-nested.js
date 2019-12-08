@@ -4,10 +4,11 @@
 'use strict';
 
 const assert = require('bsert');
-const Logger = require('blgr');
 const {wallet, Network, protocol, FullNode} = require('bcoin');
 const {NodeClient, WalletClient} = require('bclient');
-const {Path, Hardware, prepareSign} = require('../lib/bsigner');
+const {Path, DeviceManager, prepareSign, vendors} = require('../lib/bsigner');
+const {getLogger} = require('./utils/common');
+const {sleep} = require('../lib/common');
 
 /*
  * these tests test for spending from nested
@@ -22,16 +23,16 @@ const n = 'regtest';
 Network.set(n);
 const network = Network.get(n);
 
-const logger = new Logger('debug');
+const logger = getLogger();
 
 let fullNode;
 let nodeClient;
-let hardware;
+let manager;
 let walletClient;
 let primaryWallet;
 
 // path to sign with
-const path = Path.fromList([44,1,10], true);
+const path = Path.fromList([44, 1, 10], true);
 
 const walletId = 'foobarman';
 
@@ -61,9 +62,12 @@ describe('Nested Signing', function() {
       network: network.type
     });
 
-    hardware = Hardware.fromOptions({
-      vendor: 'ledger',
-      network: network,
+    manager = DeviceManager.fromOptions({
+      vendor: vendors.LEDGER,
+      [vendors.LEDGER]: {
+        timeout: 0
+      },
+      network,
       logger
     });
 
@@ -73,14 +77,16 @@ describe('Nested Signing', function() {
     primaryWallet = walletClient.wallet('primary');
 
     await logger.open();
-    await hardware.initialize();
+    await manager.open();
     await fullNode.ensure();
     await fullNode.open();
+
+    await manager.selectDevice(vendors.LEDGER);
   });
 
   after(async () => {
     await fullNode.close();
-    hardware.close();
+    await manager.close();
   });
 
   it('should start node and wallet', async () => {
@@ -95,7 +101,7 @@ describe('Nested Signing', function() {
   */
   it('should create new segwit wallet', async () => {
     // get account key
-    const pubkey = await hardware.getPublicKey(path);
+    const pubkey = await manager.getPublicKey(path);
     const accountKey = pubkey.xpubkey(network.type);
 
     const response = await walletClient.createWallet(walletId, {
@@ -120,6 +126,7 @@ describe('Nested Signing', function() {
 
     await nodeClient.execute('generatetoaddress', [toMine, nestedAddress]);
 
+    await sleep(300);
     const walletInfo = await walletClient.getAccount(walletId, 'default');
 
     assert.equal(walletInfo.balance.coin, toMine);
@@ -132,17 +139,18 @@ describe('Nested Signing', function() {
       account: 'default',
       rate: 1e3,
       outputs: [{ value: 1e4, address: receiveAddress }],
-      sign: false
+      sign: false,
+      template: true
     });
 
-    const {coins,inputTXs,paths,mtx} = await prepareSign({
+    const {coins, inputTXs, paths, mtx} = await prepareSign({
       tx: tx,
       wallet: walletClient.wallet(walletId),
       path,
       network
     });
 
-    const signed = await hardware.signTransaction(mtx, {
+    const signed = await manager.signTransaction(mtx, {
       paths,
       inputTXs,
       coins
