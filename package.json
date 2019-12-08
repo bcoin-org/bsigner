@@ -3,6 +3,9 @@
   "version": "0.5.0",
   "description": "transaction signing support for bcoin",
   "main": "lib/bsigner.js",
+  "browser": {
+    "./lib/device/usb": "./lib/device/usb-browser.js"
+  },
   "scripts": {
     "test": "bmocha -c test/*",
     "test:trezor": "bmocha -c test/* -g trezor",
@@ -25,13 +28,14 @@
     "bclient": "^0.1.6",
     "bcoin": "github:bcoin-org/bcoin#75722469",
     "bcrypto": "^3.1.11",
-    "bmultisig": "2.0.0-beta.1",
-    "bledger": "^0.3.0",
+    "bledger": "^0.3.2",
     "blgr": "^0.1.5",
+    "bmultisig": "2.0.0-beta.1",
     "bmutex": "^0.1.5",
-    "bsert": "0.0.8",
+    "bsert": "^0.0.8",
     "bstring": "^0.3.5",
-    "buffer-map": "0.0.5"
+    "buffer-map": "0.0.5",
+    "busb": "^0.1.1"
   },
   "devDependencies": {
     "bmocha": "^1.0.1"
