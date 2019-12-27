@@ -412,7 +412,7 @@ describe('Path', function () {
     assert.equal(list[0], newPurpose);
 
     const str = path.toString();
-    assert.equal(str, `m'/48'/1'/0'`);
+    assert.equal(str, 'm\'/48\'/1\'/0\'');
   });
 
   it('should dynamically update coin type', () => {
@@ -429,7 +429,7 @@ describe('Path', function () {
     const str1 = path.toString();
     const list1 = path.toList();
 
-    assert.equal(str1, `m'/47'/5353'/0'`);
+    assert.equal(str1, 'm\'/47\'/5353\'/0\'');
     assert.deepEqual(list1, [
       Path.harden(47),
       Path.harden(5353),
@@ -440,7 +440,7 @@ describe('Path', function () {
     const str2 = path.toString();
     const list2 = path.toList();
 
-    assert.equal(str2, `m'/47'/0'/0'`);
+    assert.equal(str2, 'm\'/47\'/0\'/0\'');
     assert.deepEqual(list2, [
       Path.harden(47),
       Path.harden(0),
@@ -451,7 +451,7 @@ describe('Path', function () {
     const str3 = path.toString();
     const list3 = path.toList();
 
-    assert.equal(str3, `m'/47'/10/0'`);
+    assert.equal(str3, 'm\'/47\'/10/0\'');
     assert.deepEqual(list3, [
       Path.harden(47),
       10,
