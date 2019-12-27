@@ -35,7 +35,8 @@
     "bsert": "^0.0.8",
     "bstring": "^0.3.5",
     "buffer-map": "0.0.5",
-    "busb": "^0.1.1"
+    "busb": "^0.1.1",
+    "btrezor-connect": "https://github.com/nodar-chkuaselidze/btrezor-connect"
   },
   "devDependencies": {
     "bmocha": "^1.0.1"
