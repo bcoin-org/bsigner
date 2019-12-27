@@ -6,18 +6,34 @@ const Logger = require('blgr');
 const {HDPublicKey,KeyRing} = require('bcoin');
 const {tmpdir} = require('os');
 const {randomBytes} = require('bcrypto/lib/random');
+const {parseVendors} = require('../../lib/common');
 
-function getLogger() {
+const common = exports;
+
+common.getLogger = function getLogger() {
   const level = process.env.TEST_LOGLEVEL ? process.env.TEST_LOGLEVEL : 'none';
 
   return new Logger(level);
-}
+};
+
+common.getTestVendors = function getTestVendors() {
+  let testVendors = process.env.TEST_VENDORS ? process.env.TEST_VENDORS : 'any';
+
+  testVendors = testVendors.toUpperCase();
+
+  if (testVendors === 'ANY')
+    return parseVendors(testVendors);
+
+  const enabledVendors = testVendors.split(',');
+
+  return parseVendors(enabledVendors);
+};
 
 /*
  * @param {options}
  * @param {options.hdPublicKey}
  */
-function deriveFromAccountHDPublicKey(options) {
+common.deriveFromAccountHDPublicKey = function deriveFromAccountHDPublicKey(options) {
   // format base58 encoded extended public key
   // network is required for prefix
   const {hdPublicKey,network} = options;
@@ -57,13 +73,13 @@ function deriveFromAccountHDPublicKey(options) {
   }
 
   return result;
-}
+};
 
 /*
  * build the inputs to ledgerApp
  * this also works with p2wpkh as well
  */
-function p2pkhSignatureInputs(mtx, wallet, accountPath) {
+common.p2pkhSignatureInputs = function p2pkhSignatureInputs(mtx, wallet, accountPath) {
   const inputTXs = [];
   const coins = [];
   const paths = [];
@@ -87,16 +103,11 @@ function p2pkhSignatureInputs(mtx, wallet, accountPath) {
     coins,
     paths
   };
-}
+};
 
-function testdir(name) {
+common.testdir = function testdir(name) {
   assert(/^[a-z]+$/.test(name), 'Invalid name');
 
   const uniq = randomBytes(4).toString('hex');
   return path.join(tmpdir(), `bcoin-test-${name}-${uniq}`);
 };
-
-exports.deriveFromAccountHDPublicKey = deriveFromAccountHDPublicKey;
-exports.p2pkhSignatureInputs = p2pkhSignatureInputs;
-exports.testdir = testdir;
-exports.getLogger = getLogger;
