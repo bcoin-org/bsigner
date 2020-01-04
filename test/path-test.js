@@ -26,9 +26,9 @@ describe('Path', function () {
     assert.ok(path);
 
     const str = path.toString();
-    // m'/44'/0'/0'
+    // m/44'/0'/0'
     // bip44 account xpub
-    assert.equal('m\'/44\'/0\'/0\'', str);
+    assert.equal('m/44\'/0\'/0\'', str);
 
     const list = path.toList();
 
@@ -48,7 +48,7 @@ describe('Path', function () {
     assert.ok(path);
 
     const str = path.toString();
-    assert.equal('m\'/0/0/0', str);
+    assert.equal('m/0/0/0', str);
 
     const list = path.toList();
     assert.deepEqual(input, list);
@@ -59,7 +59,7 @@ describe('Path', function () {
     path = Path.fromList(input, true);
 
     const str = path.toString();
-    assert.equal('m\'/0\'/0\'/0\'', str);
+    assert.equal('m/0\'/0\'/0\'', str);
 
     const list = path.toList();
     const expected = [
@@ -72,7 +72,7 @@ describe('Path', function () {
   });
 
   it('should instantiate from string', () => {
-    const input = 'm\'/0/0/0';
+    const input = 'm/0/0/0';
     path = Path.fromString(input);
     assert.ok(path);
 
@@ -97,7 +97,7 @@ describe('Path', function () {
     // note: this only works because each number
     // is less than 255, so we don't need to harden
     // any of the integers
-    const expected = 'm\'/' + input.join('/');
+    const expected = 'm/' + input.join('/');
     const str = path.toString();
     assert.equal(str, expected);
   });
@@ -106,7 +106,7 @@ describe('Path', function () {
     const purpose = 44;
     const type = 5353; // hns :)
     const index = 12;
-    const input = `m'/${purpose}'/${type}'/${index}'`;
+    const input = `m/${purpose}'/${type}'/${index}'`;
 
     path = Path.fromString(input);
 
@@ -125,7 +125,7 @@ describe('Path', function () {
     const depthOne = 72;
     const depthTwo = 32;
     const depthThree = 91;
-    const input = `m'/${depthOne}/${depthTwo}/${depthThree}`;
+    const input = `m/${depthOne}/${depthTwo}/${depthThree}`;
 
     path = Path.fromString(input);
 
@@ -147,7 +147,7 @@ describe('Path', function () {
     path = Path.fromList(input);
 
     const str = path.toString();
-    const expected = `m'/${purpose}'/${type}'/${index}'`;
+    const expected = `m/${purpose}'/${type}'/${index}'`;
 
     assert.equal(str, expected);
   });
@@ -166,10 +166,10 @@ describe('Path', function () {
 
     // indexed by network
     const strings = [
-      `m'/44'/0'/${index}'`,
-      `m'/44'/1'/${index}'`,
-      `m'/44'/1'/${index}'`,
-      `m'/44'/1'/${index}'`
+      `m/44'/0'/${index}'`,
+      `m/44'/1'/${index}'`,
+      `m/44'/1'/${index}'`,
+      `m/44'/1'/${index}'`
     ];
 
     for (const [i, network] of Object.entries(networks)) {
@@ -221,7 +221,7 @@ describe('Path', function () {
     path = Path.fromList(input);
 
     const str = path.toString();
-    const expected = `m'/${purpose}'/${type}'/${index}'`;
+    const expected = `m/${purpose}'/${type}'/${index}'`;
 
     assert.equal(str, expected);
   });
@@ -253,7 +253,7 @@ describe('Path', function () {
 
       const str = path.toString();
 
-      assert.equal(str, `m'/${purpose}/${type}/${index}/${next}`);
+      assert.equal(str, `m/${purpose}/${type}/${index}/${next}`);
     }
   });
 
@@ -281,7 +281,7 @@ describe('Path', function () {
 
     const str = path.toString();
 
-    assert.equal(str, `m'/${purpose}/${type}/${index}/${one}/${two}`);
+    assert.equal(str, `m/${purpose}/${type}/${index}/${one}/${two}`);
   });
 
   it('should append hardened', () => {
@@ -297,7 +297,7 @@ describe('Path', function () {
 
     const str = path.toString();
     {
-      const expected = `m'/${purpose}/${one}'/${two}'`;
+      const expected = `m/${purpose}/${one}'/${two}'`;
       assert.equal(str, expected);
     }
 
@@ -412,7 +412,7 @@ describe('Path', function () {
     assert.equal(list[0], newPurpose);
 
     const str = path.toString();
-    assert.equal(str, 'm\'/48\'/1\'/0\'');
+    assert.equal(str, 'm/48\'/1\'/0\'');
   });
 
   it('should dynamically update coin type', () => {
@@ -429,7 +429,7 @@ describe('Path', function () {
     const str1 = path.toString();
     const list1 = path.toList();
 
-    assert.equal(str1, 'm\'/47\'/5353\'/0\'');
+    assert.equal(str1, 'm/47\'/5353\'/0\'');
     assert.deepEqual(list1, [
       Path.harden(47),
       Path.harden(5353),
@@ -440,7 +440,7 @@ describe('Path', function () {
     const str2 = path.toString();
     const list2 = path.toList();
 
-    assert.equal(str2, 'm\'/47\'/0\'/0\'');
+    assert.equal(str2, 'm/47\'/0\'/0\'');
     assert.deepEqual(list2, [
       Path.harden(47),
       Path.harden(0),
@@ -451,7 +451,7 @@ describe('Path', function () {
     const str3 = path.toString();
     const list3 = path.toList();
 
-    assert.equal(str3, 'm\'/47\'/10/0\'');
+    assert.equal(str3, 'm/47\'/10/0\'');
     assert.deepEqual(list3, [
       Path.harden(47),
       10,
