@@ -6,7 +6,7 @@
 const assert = require('bsert');
 const {Network} = require('bcoin');
 const {Path, DeviceManager} = require('../lib/bsigner');
-const {AVAILABLE_VENDORS} = require('../lib/common');
+const {AVAILABLE_VENDORS, vendors} = require('../lib/common');
 const {testxpub} = require('./utils/key');
 const {getLogger, getTestVendors} = require('./utils/common');
 
@@ -28,7 +28,10 @@ describe('Get Public Key', function () {
     manager = DeviceManager.fromOptions({
       vendor: enabledVendors,
       network,
-      logger
+      logger,
+      [vendors.LEDGER]: {
+        timeout: 0
+      }
     });
 
     await manager.open();
@@ -36,7 +39,6 @@ describe('Get Public Key', function () {
     for (const vendor of enabledVendors) {
       try {
         await manager.selectDevice(vendor);
-        enabledVendors.add(vendor);
       } catch (e) {
         throw new Error(`Could not select device for ${vendor}.`);
       }
@@ -48,11 +50,8 @@ describe('Get Public Key', function () {
       await manager.close();
   });
 
-  for (const vendor of AVAILABLE_VENDORS) {
+  for (const vendor of enabledVendors) {
     it(`should get public key from ${vendor}`, async function() {
-      if (!enabledVendors.has(vendor))
-        this.skip();
-
       await manager.selectDevice(vendor);
 
       for (let i = 0; i <= 0; i++) {
