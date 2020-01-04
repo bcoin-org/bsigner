@@ -17,7 +17,7 @@ common.getLogger = function getLogger() {
 };
 
 common.getTestVendors = function getTestVendors() {
-  let testVendors = process.env.TEST_VENDORS ? process.env.TEST_VENDORS : 'any';
+  let testVendors = process.env.TEST_VENDOR ? process.env.TEST_VENDOR : 'any';
 
   testVendors = testVendors.toUpperCase();
 

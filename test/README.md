@@ -29,13 +29,13 @@ first device)
 ## Running tests for specific vendor
 
 Test suite will try to run tests against all available devices.
-if you want to restrict to specific vendors, you can use `TEST_VENDORS` env
-variable, e.g.: `TEST_VENDORS="ledger" bmocha ./test/getPublicKey-test.js`
+if you want to restrict to specific vendors, you can use `TEST_VENDOR` env
+variable, e.g.: `TEST_VENDOR="ledger" bmocha ./test/getPublicKey-test.js`
 
 Examples:
 ```
-TEST_VENDORS="any" - default, any available device
-TEST_VENDORS="ledger" - specific vendor
-TEST_VENDORS="trezor,ledger" - specific vendors
-TEST_VENDORS="trezor,ledger,..." - specific vendors
+TEST_VENDOR="any" - default, any available device
+TEST_VENDOR="ledger" - specific vendor
+TEST_VENDOR="trezor,ledger" - specific vendors
+TEST_VENDOR="trezor,ledger,..." - specific vendors
 ```

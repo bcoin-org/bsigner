@@ -1,6 +1,6 @@
 'use strict';
 
-const {HDPrivateKey,Network,Mnemonic} = require('bcoin');
+const {HDPrivateKey, Network} = require('bcoin');
 
 // well known test mnemonic
 const phrase = [
@@ -18,17 +18,15 @@ const phrase = [
   'about'
 ].join(' ');
 
+const master = HDPrivateKey.fromPhrase(phrase);
+
 // TODO: assert on network type being valid
 function testxpub(index = 0, network) {
   if (typeof network === 'string')
     network = Network.get(network);
-  const mnemonic = Mnemonic.fromPhrase(phrase);
-
-  // m'
-  const priv = HDPrivateKey.fromMnemonic(mnemonic);
 
   // m'/44'
-  const bip44Key = priv.derive(44, true);
+  const bip44Key = master.derive(44, true);
 
   // m'/44'/{0,1}'
   const coinType = network.keyPrefix.coinType;
