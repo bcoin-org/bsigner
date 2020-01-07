@@ -1,0 +1,81 @@
+{
+  "description": "Signing vectors for HW devices.",
+  "network": "regtest",
+  "vectors": [
+    {
+      "description": "P2PKH",
+      "tx": "0100000001a734a508b9621e382dbde17a87aaa03ade516fe6fbee87a8ae8955e3de3700670000000000ffffffff0158cff5050000000017a9146de7cfcbfe6218ca91470958d0e9294880444d4d8700000000",
+      "inputTXs": [
+        "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006a47304402206686c7d8f409f57e248f75f617e1088b0b97955cffaae87a091b19b37d809b8402205aed5ac6c15da141ad72c38eeeaae40f9a92fcc9914b159ab7b53853ef05535c012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0122d8f505000000001976a9143a2d4145a4f098523b3e8127f1da87cfc55b8e7988ac00000000"
+      ],
+      "coins": [
+        {
+          "version": 1,
+          "height": -1,
+          "value": 99997730,
+          "script": "76a9143a2d4145a4f098523b3e8127f1da87cfc55b8e7988ac",
+          "address": "16JcQVoL61QsLCPS6ek8UJZ52eRfaFqLJt",
+          "coinbase": false,
+          "hash": "670037dee35589aea887eefbe66f51de3aa0aa877ae1bd2d381e62b908a534a7",
+          "index": 0
+        }
+      ],
+      "inputData": [
+        {
+          "path": "m/44'/1'/0'/0/0",
+          "witness": false
+        }
+      ]
+    },
+    {
+      "description": "P2WPKH",
+      "tx": "0100000001fa9ad5bcea414cba265fe301d9c08551fddc78a3b6320c4dd08cac6ab8a9a3e00000000000ffffffff01bed2f5050000000017a9146de7cfcbfe6218ca91470958d0e9294880444d4d8700000000",
+      "inputTXs": [
+        "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006b4830450221009a4667e10cbf3893e2508c42fb390919f4c80222f84512df95127aeac153dcc90220187b966e823e382d1c90db3f41ebef8ae120406b9dec423afee4f3f6009f1178012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0140d8f505000000001600143a2d4145a4f098523b3e8127f1da87cfc55b8e7900000000"
+      ],
+      "coins": [
+        {
+          "version": 1,
+          "height": -1,
+          "value": 99997760,
+          "script": "00143a2d4145a4f098523b3e8127f1da87cfc55b8e79",
+          "address": "bc1q8gk5z3dy7zv9ywe7synlrk58elz4hrneqrrjkp",
+          "coinbase": false,
+          "hash": "e0a3a9b86aac8cd04d0c32b6a378dcfd5185c0d901e35f26ba4c41eabcd59afa",
+          "index": 0
+        }
+      ],
+      "inputData": [
+        {
+          "path": "m/44'/1'/0'/0/0",
+          "witness": true
+        }
+      ]
+    },
+    {
+      "description": "Nested P2WPKH",
+      "tx": "010000000141ac138ddf9e3d9767890ee3df8b39ae5c28ef610ccb90da36365c32041c8cba0000000000ffffffff01e6cdf5050000000017a9146de7cfcbfe6218ca91470958d0e9294880444d4d8700000000",
+      "inputTXs": [
+        "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006b483045022100b318bf124044fa5dd84db5d8a2b9322f143087cba4b573a5d1463bebbb1cc5dc02204436220bee1a2ab8a597fbe28fe8aa8de8c21fbeb7ac75576235a7e3eef44239012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0136d8f5050000000017a91434822306f3fcd95c645e86a8a904b2f76b392e9a8700000000"
+      ],
+      "coins": [
+        {
+          "version": 1,
+          "height": -1,
+          "value": 99997750,
+          "script": "a91434822306f3fcd95c645e86a8a904b2f76b392e9a87",
+          "address": "36Uexapye6KvyinzwXWj7NRboxxgUNXHe1",
+          "coinbase": false,
+          "hash": "ba8c1c04325c3636da90cb0c61ef285cae398bdfe30e8967973d9edf8d13ac41",
+          "index": 0
+        }
+      ],
+      "inputData": [
+        {
+          "path": "m/44'/1'/0'/0/0",
+          "witness": true
+        }
+      ]
+    }
+  ]
+}
