@@ -219,7 +219,8 @@ async function generateP2SH(witness, nested) {
   const ourSignature = extractSignature(tx.inputs[0], witness);
 
   // remove script of our input.
-  tx.inputs[0].script = new Script();
+  tx.inputs[0].script.clear();
+  tx.inputs[0].witness.clear();
 
   const input = {
     tx: tx.toRaw().toString('hex'),
