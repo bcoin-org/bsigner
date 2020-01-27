@@ -53,9 +53,9 @@ describe('Sign Transaction', function () {
         await manager.selectDevice(vendor);
 
         const {tx, inputData} = signVector;
-        const signed = await manager.signTransaction(tx, inputData);
+        await manager.signTransaction(tx, inputData);
 
-        signed.check();
+        tx.check();
       });
     }
   }
