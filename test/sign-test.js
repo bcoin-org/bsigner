@@ -3,7 +3,6 @@
 
 'use strict';
 
-const assert = require('bsert');
 const {Network, MTX, TX, Coin} = require('bcoin');
 const {DeviceManager} = require('../lib/bsigner');
 const {vendors} = require('../lib/common');
