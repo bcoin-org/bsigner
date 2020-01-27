@@ -5,7 +5,7 @@
 
 const assert = require('bsert');
 const {Network, MTX, TX, Coin} = require('bcoin');
-const {Path, DeviceManager} = require('../lib/bsigner');
+const {DeviceManager} = require('../lib/bsigner');
 const {vendors} = require('../lib/common');
 const {getLogger, getTestVendors} = require('./utils/common');
 
@@ -18,9 +18,6 @@ describe('Sign Transaction', function () {
   const signVectors = readSignVectors('./data/signVectors.json');
   const network = signVectors.network;
 
-  // use hardware global so it
-  // can be properly closed after
-  // the tests
   let manager = null;
 
   before(async () => {
@@ -56,15 +53,10 @@ describe('Sign Transaction', function () {
       it(`should sign ${signVector.description} (${vendor})`, async () => {
         await manager.selectDevice(vendor);
 
-        const {tx, inputTXs, coins, inputData} = signVector;
+        const {tx, inputData} = signVector;
+        const signed = await manager.signTransaction(tx, inputData);
 
-        const signed = await manager.signTransaction(tx, {
-          inputTXs,
-          coins,
-          inputData
-        });
-
-        assert.ok(signed.verify());
+        signed.check();
       });
     }
   }
@@ -76,16 +68,17 @@ function readSignVectors(path) {
   json.network = Network.get(json.network);
 
   json.vectors = json.vectors.map((vector) => {
-    vector.inputTXs = vector.inputTXs.map((itx) => {
-      return TX.fromRaw(Buffer.from(itx, 'hex'));
-    });
-
-    vector.coins = vector.coins.map(c => Coin.fromJSON(c, json.network));
-
     vector.tx = MTX.fromRaw(Buffer.from(vector.tx, 'hex'));
+    vector.inputData = vector.inputData.map((data) => {
+      const coin = Coin.fromJSON(data.coin, json.network);
+      const prevTX = TX.fromRaw(Buffer.from(data.prevTX, 'hex'));
+      const witness = Boolean(data.witness);
+      const {multisig, path} = data;
 
-    for (const coin of vector.coins)
       vector.tx.view.addCoin(coin);
+
+      return {path, witness, multisig, coin, prevTX};
+    });
 
     return vector;
   });

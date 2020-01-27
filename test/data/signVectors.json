@@ -1,27 +1,23 @@
 {
   "description": "Signing vectors for HW devices.",
-  "network": "regtest",
+  "network": "testnet",
   "vectors": [
     {
       "description": "P2PKH",
-      "tx": "0100000001a734a508b9621e382dbde17a87aaa03ade516fe6fbee87a8ae8955e3de3700670000000000ffffffff0158cff5050000000017a9146de7cfcbfe6218ca91470958d0e9294880444d4d8700000000",
-      "inputTXs": [
-        "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006a47304402206686c7d8f409f57e248f75f617e1088b0b97955cffaae87a091b19b37d809b8402205aed5ac6c15da141ad72c38eeeaae40f9a92fcc9914b159ab7b53853ef05535c012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0122d8f505000000001976a9143a2d4145a4f098523b3e8127f1da87cfc55b8e7988ac00000000"
-      ],
-      "coins": [
-        {
-          "version": 1,
-          "height": -1,
-          "value": 99997730,
-          "script": "76a9143a2d4145a4f098523b3e8127f1da87cfc55b8e7988ac",
-          "address": "16JcQVoL61QsLCPS6ek8UJZ52eRfaFqLJt",
-          "coinbase": false,
-          "hash": "670037dee35589aea887eefbe66f51de3aa0aa877ae1bd2d381e62b908a534a7",
-          "index": 0
-        }
-      ],
+      "tx": "0100000001a734a508b9621e382dbde17a87aaa03ade516fe6fbee87a8ae8955e3de3700670000000000ffffffff02080cf5050000000017a9146de7cfcbfe6218ca91470958d0e9294880444d4d8750c30000000000001976a9141cb73920b5ac38f460e38deb684b9c4a408ff3c088ac00000000",
       "inputData": [
         {
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006a47304402206686c7d8f409f57e248f75f617e1088b0b97955cffaae87a091b19b37d809b8402205aed5ac6c15da141ad72c38eeeaae40f9a92fcc9914b159ab7b53853ef05535c012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0122d8f505000000001976a9143a2d4145a4f098523b3e8127f1da87cfc55b8e7988ac00000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997730,
+            "script": "76a9143a2d4145a4f098523b3e8127f1da87cfc55b8e7988ac",
+            "address": "mkpZhYtJu2r87Js3pDiWJDmPte2NRZ8bJV",
+            "coinbase": false,
+            "hash": "670037dee35589aea887eefbe66f51de3aa0aa877ae1bd2d381e62b908a534a7",
+            "index": 0
+          },
           "path": "m/44'/1'/0'/0/0",
           "witness": false
         }
@@ -29,24 +25,20 @@
     },
     {
       "description": "P2WPKH",
-      "tx": "0100000001fa9ad5bcea414cba265fe301d9c08551fddc78a3b6320c4dd08cac6ab8a9a3e00000000000ffffffff01bed2f5050000000017a9146de7cfcbfe6218ca91470958d0e9294880444d4d8700000000",
-      "inputTXs": [
-        "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006b4830450221009a4667e10cbf3893e2508c42fb390919f4c80222f84512df95127aeac153dcc90220187b966e823e382d1c90db3f41ebef8ae120406b9dec423afee4f3f6009f1178012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0140d8f505000000001600143a2d4145a4f098523b3e8127f1da87cfc55b8e7900000000"
-      ],
-      "coins": [
-        {
-          "version": 1,
-          "height": -1,
-          "value": 99997760,
-          "script": "00143a2d4145a4f098523b3e8127f1da87cfc55b8e79",
-          "address": "bc1q8gk5z3dy7zv9ywe7synlrk58elz4hrneqrrjkp",
-          "coinbase": false,
-          "hash": "e0a3a9b86aac8cd04d0c32b6a378dcfd5185c0d901e35f26ba4c41eabcd59afa",
-          "index": 0
-        }
-      ],
+      "tx": "0100000001fa9ad5bcea414cba265fe301d9c08551fddc78a3b6320c4dd08cac6ab8a9a3e00000000000ffffffff026e0ff5050000000017a9146de7cfcbfe6218ca91470958d0e9294880444d4d8750c30000000000001600141cb73920b5ac38f460e38deb684b9c4a408ff3c000000000",
       "inputData": [
         {
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006b4830450221009a4667e10cbf3893e2508c42fb390919f4c80222f84512df95127aeac153dcc90220187b966e823e382d1c90db3f41ebef8ae120406b9dec423afee4f3f6009f1178012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0140d8f505000000001600143a2d4145a4f098523b3e8127f1da87cfc55b8e7900000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997760,
+            "script": "00143a2d4145a4f098523b3e8127f1da87cfc55b8e79",
+            "address": "tb1q8gk5z3dy7zv9ywe7synlrk58elz4hrne29cpdj",
+            "coinbase": false,
+            "hash": "e0a3a9b86aac8cd04d0c32b6a378dcfd5185c0d901e35f26ba4c41eabcd59afa",
+            "index": 0
+          },
           "path": "m/44'/1'/0'/0/0",
           "witness": true
         }
@@ -54,26 +46,436 @@
     },
     {
       "description": "Nested P2WPKH",
-      "tx": "010000000141ac138ddf9e3d9767890ee3df8b39ae5c28ef610ccb90da36365c32041c8cba0000000000ffffffff01e6cdf5050000000017a9146de7cfcbfe6218ca91470958d0e9294880444d4d8700000000",
-      "inputTXs": [
-        "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006b483045022100b318bf124044fa5dd84db5d8a2b9322f143087cba4b573a5d1463bebbb1cc5dc02204436220bee1a2ab8a597fbe28fe8aa8de8c21fbeb7ac75576235a7e3eef44239012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0136d8f5050000000017a91434822306f3fcd95c645e86a8a904b2f76b392e9a8700000000"
-      ],
-      "coins": [
-        {
-          "version": 1,
-          "height": -1,
-          "value": 99997750,
-          "script": "a91434822306f3fcd95c645e86a8a904b2f76b392e9a87",
-          "address": "36Uexapye6KvyinzwXWj7NRboxxgUNXHe1",
-          "coinbase": false,
-          "hash": "ba8c1c04325c3636da90cb0c61ef285cae398bdfe30e8967973d9edf8d13ac41",
-          "index": 0
-        }
-      ],
+      "tx": "010000000141ac138ddf9e3d9767890ee3df8b39ae5c28ef610ccb90da36365c32041c8cba0000000000ffffffff02960af5050000000017a9146de7cfcbfe6218ca91470958d0e9294880444d4d8750c300000000000017a9146e3e392c5b857e30728d8d7fb1f6cef8b0cc65348700000000",
       "inputData": [
         {
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006b483045022100b318bf124044fa5dd84db5d8a2b9322f143087cba4b573a5d1463bebbb1cc5dc02204436220bee1a2ab8a597fbe28fe8aa8de8c21fbeb7ac75576235a7e3eef44239012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0136d8f5050000000017a91434822306f3fcd95c645e86a8a904b2f76b392e9a8700000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997750,
+            "script": "a91434822306f3fcd95c645e86a8a904b2f76b392e9a87",
+            "address": "2Mx2s2Km1FYqHBWRYcf8bjKQs2KArGcD8um",
+            "coinbase": false,
+            "hash": "ba8c1c04325c3636da90cb0c61ef285cae398bdfe30e8967973d9edf8d13ac41",
+            "index": 0
+          },
           "path": "m/44'/1'/0'/0/0",
           "witness": true
+        }
+      ]
+    },
+    {
+      "description": "P2SH multisig",
+      "tx": "0100000001e7764d5ab87b033d42b7b964443be21ed76c4cf7300991f586fa17cd49de10e90000000000ffffffff02960af5050000000017a9146de7cfcbfe6218ca91470958d0e9294880444d4d8750c300000000000017a914c0c1e23ef4a1168474fd7d6ff2fdaaa96507262f8700000000",
+      "inputData": [
+        {
+          "path": "m/44'/1'/1'/0/0",
+          "witness": false,
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006a473044022024deb0460aee5bdc779bccdfef2638673322934ff98248ae3d818b26511143ee0220045602f72e15f5ab4a785795441d5d350b7e4f75f2209263a1d46c7506747fc6012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0136d8f5050000000017a91447863eb9629b0870f38360a68aae69ad010d5b318700000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997750,
+            "script": "a91447863eb9629b0870f38360a68aae69ad010d5b3187",
+            "address": "2MymQnQoQc6YXSXXUkF9WdcWk8uvnD2tTMw",
+            "coinbase": false,
+            "hash": "e910de49cd17fa86f5910930f74c6cd71ee23b4464b9b7423d037bb85a4d76e7",
+            "index": 0
+          },
+          "multisig": {
+            "m": 2,
+            "pubkeys": [
+              {
+                "xpub": "tpubDC5FSnBiZDMmkoat4aZFfbJdEthnPqJ1jXZcKWJNKC4yJanLA55dRW5qKJRRvAo1SwaXeUx2ayUQyVJ6eCbABbBB8Wn3T7dAuVJRnZgntVC",
+                "path": "m/0/0"
+              },
+              {
+                "xpub": "tpubDDBsptAyNXagWcEAR9eciiBeQMF4Qfmceocb31Bnbw1t3J7iCivcqdHunBVkNnjMgyMzof4pUW8e15dHbLZ95QpafhNtMKE6T4rQFh5fHSF",
+                "path": "m/0/0"
+              }
+            ],
+            "signatures": [
+              "",
+              "3045022100e4e31505d1f6a1f372c8b2c2836bd7b4acdbc9da0cf515db5cd8d4083ffdd6c702207ffd9ffc14070cb2be6b25b989cc51095b7bf5c36af4e1269095a276a9ecd98d01"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "description": "P2WSH multisig",
+      "tx": "01000000000101c3be89ec268b7b9bab8c424a958df500c8d28a904d2be331a78d396341d53c8a0000000000ffffffff021a0ef5050000000017a9146de7cfcbfe6218ca91470958d0e9294880444d4d8750c3000000000000220020e3dfd86945aae1b74397400967da07a69b99e8f8c288c81b27e829ff9fffac0f0400473044022014e0bedd6f49854c15de34e886c6d05e5f7e2bfe7f6f7abeeb489edaaffd5d110220063a9ba75b75a1aee7e750af76d87e7b98b93dd48440e66e42603af1d3f893b60100475221023e6836299fd74a0c84c02b456875aa95cb90fdd1f043dd5625fdca16f501d8ce210283a9e7d8261a2ab969f286208712fd620a6b1d38b525ff0dffff2f8188d2fe4752ae00000000",
+      "inputData": [
+        {
+          "path": "m/44'/1'/1'/0/0",
+          "witness": true,
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006a47304402205bde4afe74e9960ae0b929ccbc360b9f54b694fbe2a7a0a33a754b11ef6199f20220196689310b1c1159e0e661826f73f45e62d00cd65f6247b6d0a90c52243a5fed012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff01c8d7f505000000002200202c57ae9609842f63e1f8236b7dba384979a1daae19e9feb51bab9fd17b35c1de00000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997640,
+            "script": "00202c57ae9609842f63e1f8236b7dba384979a1daae19e9feb51bab9fd17b35c1de",
+            "address": "tb1q93t6a9sfsshk8c0cyd4hmw3cf9u6rk4wr85ladgm4w0az7e4c80q0gsl0l",
+            "coinbase": false,
+            "hash": "8a3cd54163398da731e32b4d908ad2c800f58d954a428cab9b7b8b26ec89bec3",
+            "index": 0
+          },
+          "multisig": {
+            "m": 2,
+            "pubkeys": [
+              {
+                "xpub": "tpubDC5FSnBiZDMmkoat4aZFfbJdEthnPqJ1jXZcKWJNKC4yJanLA55dRW5qKJRRvAo1SwaXeUx2ayUQyVJ6eCbABbBB8Wn3T7dAuVJRnZgntVC",
+                "path": "m/0/0"
+              },
+              {
+                "xpub": "tpubDDBsptAyNXagWcEAR9eciiBeQMF4Qfmceocb31Bnbw1t3J7iCivcqdHunBVkNnjMgyMzof4pUW8e15dHbLZ95QpafhNtMKE6T4rQFh5fHSF",
+                "path": "m/0/0"
+              }
+            ],
+            "signatures": [
+              "",
+              "3044022014e0bedd6f49854c15de34e886c6d05e5f7e2bfe7f6f7abeeb489edaaffd5d110220063a9ba75b75a1aee7e750af76d87e7b98b93dd48440e66e42603af1d3f893b601"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "description": "Nested P2WSH multisig",
+      "tx": "01000000000101e7a9e6465c9ba1b4b1186b28f1ff3efa968a8c832ee12925ecd8f80cb2b1ef8c0000000000ffffffff02960af5050000000017a9146de7cfcbfe6218ca91470958d0e9294880444d4d8750c300000000000017a914df9bfde0b9c2796ea7e3036e5f702d1cf4043546870400483045022100e628b51945185685c9e22a574e098df960dbff1d98ba63eb5a5641c68efed75402203c19baf4c9c9f3680d4d8c2faec8129f69f0badb6e38ae06f26895b2a4743b2c0100475221023e6836299fd74a0c84c02b456875aa95cb90fdd1f043dd5625fdca16f501d8ce210283a9e7d8261a2ab969f286208712fd620a6b1d38b525ff0dffff2f8188d2fe4752ae00000000",
+      "inputData": [
+        {
+          "path": "m/44'/1'/1'/0/0",
+          "witness": true,
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006b4830450221009e3bb1dc6d78534670f8c40814e8f144c2a63612c33223f8898fddde9b4a2a3202203164b752bf90300bf1ff65fa0fa7c604d2e3f2511ce0a7f5ca0036cb09259764012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0136d8f5050000000017a914a1ca835c5e499db22fbd64cd43d32d9d7dbf642c8700000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997750,
+            "script": "a914a1ca835c5e499db22fbd64cd43d32d9d7dbf642c87",
+            "address": "2N7zhP2YgFccmCeBnv3JJ2NqhvE781LisdA",
+            "coinbase": false,
+            "hash": "8cefb1b20cf8d8ec2529e12e838c8a96fa3efff1286b18b1b4a19b5c46e6a9e7",
+            "index": 0
+          },
+          "multisig": {
+            "m": 2,
+            "pubkeys": [
+              {
+                "xpub": "tpubDC5FSnBiZDMmkoat4aZFfbJdEthnPqJ1jXZcKWJNKC4yJanLA55dRW5qKJRRvAo1SwaXeUx2ayUQyVJ6eCbABbBB8Wn3T7dAuVJRnZgntVC",
+                "path": "m/0/0"
+              },
+              {
+                "xpub": "tpubDDBsptAyNXagWcEAR9eciiBeQMF4Qfmceocb31Bnbw1t3J7iCivcqdHunBVkNnjMgyMzof4pUW8e15dHbLZ95QpafhNtMKE6T4rQFh5fHSF",
+                "path": "m/0/0"
+              }
+            ],
+            "signatures": [
+              "",
+              "3045022100e628b51945185685c9e22a574e098df960dbff1d98ba63eb5a5641c68efed75402203c19baf4c9c9f3680d4d8c2faec8129f69f0badb6e38ae06f26895b2a4743b2c01"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "description": "Multiple input transaction (p2pkh, p2sh)",
+      "tx": "01000000049ea9bd9b576058b2c6015f9c72479b137aa56d41249b7d0f54b36c1c7efc85b80000000000ffffffffed334227034edfd767ee1f4c441f555b2eaf15da656dbaf3bfa64a217483419a0000000000ffffffff0c7ba2af58ba41b3a642de51b0ee3fcbe4334b0c6c4d675127b898080961934c0000000000ffffffff64cbbc6b83fe26c1c2ac2c5538f401ea22e5d82d8febd0ec4aa9e851ce8efea80000000000ffffffff02ec7fd6170000000017a9146de7cfcbfe6218ca91470958d0e9294880444d4d8750c30000000000001976a914cc51682678f691c95810300d7f156598335c8d8e88ac00000000",
+      "inputData": [
+        {
+          "path": "m/44'/1'/0'/0/1",
+          "witness": false,
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006a4730440220625f026937d82b63106daa5d343dfe6e4ad0ded4d94bd20440b70f004c01daef02202fadfdde381ba21123892a667cde1566fcad6869809edfa341af50988eed6976012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0122d8f505000000001976a914d3c0870e8e13a9ec320f1280889127aa15a4c0a188ac00000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997730,
+            "script": "76a914d3c0870e8e13a9ec320f1280889127aa15a4c0a188ac",
+            "address": "mzpbWabUQm1w8ijuJnAof5eiSTep27deVH",
+            "coinbase": false,
+            "hash": "4c9361090898b82751674d6c0c4b33e4cb3feeb051de42a6b341ba58afa27b0c",
+            "index": 0
+          }
+        },
+        {
+          "path": "m/44'/1'/0'/0/2",
+          "witness": false,
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006b483045022100929d2d884ff33d58a3022fc07df79415b227c2ae825b70e2db581e4f1c5c1e1002202164381c062d69287aba88a8e26dbbacb1039a96576ca18fe723ec587fbfb161012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0122d8f505000000001976a9144c2e2bf28069045a8eb627c839ff2306b73bba3088ac00000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997730,
+            "script": "76a9144c2e2bf28069045a8eb627c839ff2306b73bba3088ac",
+            "address": "mnTkxhNkgx7TsZrEdRcPti564yQTzynGJp",
+            "coinbase": false,
+            "hash": "a8fe8ece51e8a94aecd0eb8f2dd8e522ea01f438552cacc2c126fe836bbccb64",
+            "index": 0
+          }
+        },
+        {
+          "witness": false,
+          "path": "m/44'/1'/1'/0/1",
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006a47304402206716721c3ca181e017d8655cd66ca550c31577f2cc84f93598134cc852a09efc02205010591c5c1698e84c7302310e420a1d46d52241fc5e1cf0a8d2d35b63ed56f4012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0136d8f5050000000017a914051bdf317a9b07ac7a7e5d61094d8140be85160e8700000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997750,
+            "script": "a914051bdf317a9b07ac7a7e5d61094d8140be85160e87",
+            "address": "2MsiEkp7YDwpzyF8eDHPmRPUEfpibuBfizc",
+            "coinbase": false,
+            "hash": "b885fc7e1c6cb3540f7d9b24416da57a139b47729c5f01c6b25860579bbda99e",
+            "index": 0
+          },
+          "multisig": {
+            "m": 2,
+            "pubkeys": [
+              {
+                "xpub": "tpubDC5FSnBiZDMmkoat4aZFfbJdEthnPqJ1jXZcKWJNKC4yJanLA55dRW5qKJRRvAo1SwaXeUx2ayUQyVJ6eCbABbBB8Wn3T7dAuVJRnZgntVC",
+                "path": "m/0/1"
+              },
+              {
+                "xpub": "tpubDDBsptAyNXagWcEAR9eciiBeQMF4Qfmceocb31Bnbw1t3J7iCivcqdHunBVkNnjMgyMzof4pUW8e15dHbLZ95QpafhNtMKE6T4rQFh5fHSF",
+                "path": "m/0/1"
+              }
+            ],
+            "signatures": [
+              "",
+              "3045022100c5bdefd68ad2afb276101f72f6f24fd121edf33b77ea5e828b77621f40be12c002203139d1fccc20df8f252397af758484ed5c773f2115105375a4349ef8e246260401"
+            ]
+          }
+        },
+        {
+          "witness": false,
+          "path": "m/44'/1'/1'/0/2",
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006b483045022100be54b5dc86330dc036f72dff7dd7d8e0872c04283a902737fc0b5f053ccc7e8a02203ec3a3831740728d2f2dc012ae30c0f1d78927116915d8dd743ac7f102437f85012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0136d8f5050000000017a9148c6471e02167472cc3ccd63aa3e009e33844cdbc8700000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997750,
+            "script": "a9148c6471e02167472cc3ccd63aa3e009e33844cdbc87",
+            "address": "2N63YvAm4WE7be6CHsmv21QhLxRwfBGQJ8J",
+            "coinbase": false,
+            "hash": "9a418374214aa6bff3ba6d65da15af2e5b551f444c1fee67d7df4e03274233ed",
+            "index": 0
+          },
+          "multisig": {
+            "m": 2,
+            "pubkeys": [
+              {
+                "xpub": "tpubDC5FSnBiZDMmkoat4aZFfbJdEthnPqJ1jXZcKWJNKC4yJanLA55dRW5qKJRRvAo1SwaXeUx2ayUQyVJ6eCbABbBB8Wn3T7dAuVJRnZgntVC",
+                "path": "m/0/2"
+              },
+              {
+                "xpub": "tpubDDBsptAyNXagWcEAR9eciiBeQMF4Qfmceocb31Bnbw1t3J7iCivcqdHunBVkNnjMgyMzof4pUW8e15dHbLZ95QpafhNtMKE6T4rQFh5fHSF",
+                "path": "m/0/2"
+              }
+            ],
+            "signatures": [
+              "",
+              "304402206ad21926b7ee803d5f6ed7decdc36a57febfaa057a0b8de9f5795812e3c88d1b0220717ad3125b56dd965653a476a522df326ebadfc7cf0a84ef0f189dfacc1d282d01"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "description": "Multiple input transaction (p2wpkh, p2wsh)",
+      "tx": "01000000045e64a4bdd6c49eb53408985de35358a9d8aaad9d2af3bc2383abb845091c55d10000000000ffffffff3d26f2f327086d19150cdd75fbab7737b4d14b290a6f63338da71e03fd5eee700000000000ffffffff9ea98f3e06d77c63a1cbd7c71ade88ef21b663e5de167bf20b136b54852967990000000000ffffffffb13cf0759b92e1cf3c5dd64fa2a50793ec694ff33071c8dc54600d0f89d9ec190000000000ffffffff027e8ed6170000000017a9146de7cfcbfe6218ca91470958d0e9294880444d4d8750c3000000000000160014cc51682678f691c95810300d7f156598335c8d8e00000000",
+      "inputData": [
+        {
+          "path": "m/44'/1'/0'/0/1",
+          "witness": true,
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006a47304402200fa286ec4bb088fa3d3c064d8c1b96e19da9e20f431e33e48269147a0bbad422022037041a1241b6eb50ec5b67fcb50f79e06a8398295b062fa8d9a8354ae2ee8ca1012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0140d8f50500000000160014d3c0870e8e13a9ec320f1280889127aa15a4c0a100000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997760,
+            "script": "0014d3c0870e8e13a9ec320f1280889127aa15a4c0a1",
+            "address": "tb1q60qgwr5wzw57cvs0z2qg3yf84g26fs9p97f2cu",
+            "coinbase": false,
+            "hash": "d1551c0945b8ab8323bcf32a9dadaad8a95853e35d980834b59ec4d6bda4645e",
+            "index": 0
+          }
+        },
+        {
+          "path": "m/44'/1'/0'/0/2",
+          "witness": true,
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006b483045022100cd7ec916ed2954e0f5e95aa1736c696d0e38a94b13f1afa7828df9f7fe5c4c6402203f8a07c36ad1c1f4a9503b51ac66e7ace074dd95729250dfaa5e693435277753012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0140d8f505000000001600144c2e2bf28069045a8eb627c839ff2306b73bba3000000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997760,
+            "script": "00144c2e2bf28069045a8eb627c839ff2306b73bba30",
+            "address": "tb1qfshzhu5qdyz94r4kylyrnlerq6mnhw3sjz7w8p",
+            "coinbase": false,
+            "hash": "70ee5efd031ea78d33636f0a294bd1b43777abfb75dd0c15196d0827f3f2263d",
+            "index": 0
+          }
+        },
+        {
+          "witness": true,
+          "path": "m/44'/1'/1'/0/1",
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006a47304402203d342b3d41e2531a0a121c62345323883e265fb5b6e7fbb921e86450fac0e8a502205972c1e085f5fb7947ad9394634685105ab97ea75703f4a9662dfad0ba35e148012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff01c8d7f50500000000220020a2ab46c529d86c959b5b53d885e89d91f031c64c72ef35c6a7f0249fb97687e700000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997640,
+            "script": "0020a2ab46c529d86c959b5b53d885e89d91f031c64c72ef35c6a7f0249fb97687e7",
+            "address": "tb1q5245d3ffmpkftx6m20vgt6yaj8crr3jvwthnt3487qjflwtkslns2rd69d",
+            "coinbase": false,
+            "hash": "99672985546b130bf27b16dee563b621ef88de1ac7d7cba1637cd7063e8fa99e",
+            "index": 0
+          },
+          "multisig": {
+            "m": 2,
+            "pubkeys": [
+              {
+                "xpub": "tpubDC5FSnBiZDMmkoat4aZFfbJdEthnPqJ1jXZcKWJNKC4yJanLA55dRW5qKJRRvAo1SwaXeUx2ayUQyVJ6eCbABbBB8Wn3T7dAuVJRnZgntVC",
+                "path": "m/0/1"
+              },
+              {
+                "xpub": "tpubDDBsptAyNXagWcEAR9eciiBeQMF4Qfmceocb31Bnbw1t3J7iCivcqdHunBVkNnjMgyMzof4pUW8e15dHbLZ95QpafhNtMKE6T4rQFh5fHSF",
+                "path": "m/0/1"
+              }
+            ],
+            "signatures": [
+              "",
+              "304402204ad9ee3e701c1ddd54c6ba85379e4b6598c646f5a02913d83413d27502404d1602204387b9f01fa88ae0ccb495fae0efa1b7f842cc62f81585c36fd832d0518e03cb01"
+            ]
+          }
+        },
+        {
+          "witness": true,
+          "path": "m/44'/1'/1'/0/2",
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006b483045022100a8b6bc2016edfd822ef96d07e9673308f0a2506321581a06d46051d28f04f36f0220521ca8814f16cd838478c72007fa5f4c7bd9d998df70f6a6a93195a4927d5db4012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff01c8d7f505000000002200201101c4af9e91537af0c3186c53a2cb7e6e3214185ca9367f2f3ee5b94808927900000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997640,
+            "script": "00201101c4af9e91537af0c3186c53a2cb7e6e3214185ca9367f2f3ee5b948089279",
+            "address": "tb1qzyquftu7j9fh4uxrrpk98gkt0ehry9qctj5nvle08mjmjjqgjfusm3gp64",
+            "coinbase": false,
+            "hash": "19ecd9890f0d6054dcc87130f34f69ec9307a5a24fd65d3ccfe1929b75f03cb1",
+            "index": 0
+          },
+          "multisig": {
+            "m": 2,
+            "pubkeys": [
+              {
+                "xpub": "tpubDC5FSnBiZDMmkoat4aZFfbJdEthnPqJ1jXZcKWJNKC4yJanLA55dRW5qKJRRvAo1SwaXeUx2ayUQyVJ6eCbABbBB8Wn3T7dAuVJRnZgntVC",
+                "path": "m/0/2"
+              },
+              {
+                "xpub": "tpubDDBsptAyNXagWcEAR9eciiBeQMF4Qfmceocb31Bnbw1t3J7iCivcqdHunBVkNnjMgyMzof4pUW8e15dHbLZ95QpafhNtMKE6T4rQFh5fHSF",
+                "path": "m/0/2"
+              }
+            ],
+            "signatures": [
+              "",
+              "3045022100de46d4a952a3bee74a55cd0497310426af20380250896d2a5dc01078b3e30387022055162c8ac3d95408428f90aa4895f1280ee958e7e3ed80c77ae665bde55f00d301"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "description": "Multiple input transaction (nested-p2wpkh, nested-p2wsh)",
+      "tx": "0100000004cff835c7472ca8671255c1a27af90a63048b8f9c84cf5816163da84c384eaf700000000000ffffffff799be65315bb268d8893d27d6fab8f6f3d79769e3797d4a22b7065fcfea459d00000000000ffffffff99064e9a10a17a5e35adb824c7a073f3b30ee6dbfe2d104564db3937ca87b2220000000000ffffffffcc4dc7e03972fa7be4a9177c02e2c3d2620cfdec57ee3bddd7d6b4d1bc6ca9670000000000ffffffff02f47cd6170000000017a9146de7cfcbfe6218ca91470958d0e9294880444d4d8750c300000000000017a9145ba11a101ff3eeaa3ddd333f6b5d76e63e28e6208700000000",
+      "inputData": [
+        {
+          "path": "m/44'/1'/0'/0/1",
+          "witness": true,
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006a47304402200c2303c6791a5b4b64115b9c37456039d1545aa7e1d048aec40ce247bdb071840220635934e85e9e16c3e6ee8903b015f3c3949761d71818c27f8620dc41636d8188012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0136d8f5050000000017a91489e60b8c36a3f791e56b80861b6db0238dc72d158700000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997750,
+            "script": "a91489e60b8c36a3f791e56b80861b6db0238dc72d1587",
+            "address": "2N5pN9NwPt1jhusY6jLVrLtUsrU6GpchHuS",
+            "coinbase": false,
+            "hash": "70af4e384ca83d161658cf849c8f8b04630af97aa2c1551267a82c47c735f8cf",
+            "index": 0
+          }
+        },
+        {
+          "path": "m/44'/1'/0'/0/2",
+          "witness": true,
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006a47304402205ebb8a49df912e1b4f9246be44c64228c074b125146e51bc158312d913629eea022044afa6c44476143b75a06eded80492289d4596ed4e5aea2918bafb3aec5936a3012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0136d8f5050000000017a914ce9fb8dea2f22882208dfbaf27321fccb6a67aeb8700000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997750,
+            "script": "a914ce9fb8dea2f22882208dfbaf27321fccb6a67aeb87",
+            "address": "2NC5kXVPpdYLjhSP7zA6VXdgirm67yvQPEE",
+            "coinbase": false,
+            "hash": "d059a4fefc65702ba2d497379e76793d6f8fab6f7dd293888d26bb1553e69b79",
+            "index": 0
+          }
+        },
+        {
+          "witness": true,
+          "path": "m/44'/1'/1'/0/1",
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006b483045022100882b5b94b3da8c0cc5753f41d54edef54b46b50d3fe201479bd4b6389cd9852902201993256810c18c3120801f521a2149f89989cb3c84ecd1970c80a4f9bfa75027012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0136d8f5050000000017a91480ca80fb63b658319840d5c9725357509d884d488700000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997750,
+            "script": "a91480ca80fb63b658319840d5c9725357509d884d4887",
+            "address": "2N4zD53wGc1nZazP3jw5ZjxZ3FkHst7FfJp",
+            "coinbase": false,
+            "hash": "22b287ca3739db6445102dfedbe60eb3f373a0c724b8ad355e7aa1109a4e0699",
+            "index": 0
+          },
+          "multisig": {
+            "m": 2,
+            "pubkeys": [
+              {
+                "xpub": "tpubDC5FSnBiZDMmkoat4aZFfbJdEthnPqJ1jXZcKWJNKC4yJanLA55dRW5qKJRRvAo1SwaXeUx2ayUQyVJ6eCbABbBB8Wn3T7dAuVJRnZgntVC",
+                "path": "m/0/1"
+              },
+              {
+                "xpub": "tpubDDBsptAyNXagWcEAR9eciiBeQMF4Qfmceocb31Bnbw1t3J7iCivcqdHunBVkNnjMgyMzof4pUW8e15dHbLZ95QpafhNtMKE6T4rQFh5fHSF",
+                "path": "m/0/1"
+              }
+            ],
+            "signatures": [
+              "",
+              "30440220725510efc1ed9f28132a811a5dd4c7a4aaf1c952356dc8105b381032fe3538250220406c0c7d95424f7bcb28762526b9dac4c0488d931b27c3e938c73f3463dc5f8d01"
+            ]
+          }
+        },
+        {
+          "witness": true,
+          "path": "m/44'/1'/1'/0/2",
+          "prevTX": "0100000001edfeea26d83b6803ab885ef2fff16a0a0abc471f645cb8c7073ee04fcbfc9606000000006b483045022100afb89ccc9525e95969690b0be8c349ce5d5de348e039ffa2f4d85596db4d852902207ea0f073b963a14e8623fd92412d24a968c51d55ee3336d3e623a27487644c8c012103f25461367fcaacc9a9e9e965aee5ffc888fe0bba99b99721f215d21830e869ceffffffff0136d8f5050000000017a9142e59a9a813ed7f6ca4f34d6f6b0f38c431ba1cce8700000000",
+          "coin": {
+            "version": 1,
+            "height": -1,
+            "value": 99997750,
+            "script": "a9142e59a9a813ed7f6ca4f34d6f6b0f38c431ba1cce87",
+            "address": "2MwUJUyyoFMJARESemA9KQDcFJRdxiVbPkY",
+            "coinbase": false,
+            "hash": "67a96cbcd1b4d6d7dd3bee57ecfd0c62d2c3e2027c17a9e47bfa7239e0c74dcc",
+            "index": 0
+          },
+          "multisig": {
+            "m": 2,
+            "pubkeys": [
+              {
+                "xpub": "tpubDC5FSnBiZDMmkoat4aZFfbJdEthnPqJ1jXZcKWJNKC4yJanLA55dRW5qKJRRvAo1SwaXeUx2ayUQyVJ6eCbABbBB8Wn3T7dAuVJRnZgntVC",
+                "path": "m/0/2"
+              },
+              {
+                "xpub": "tpubDDBsptAyNXagWcEAR9eciiBeQMF4Qfmceocb31Bnbw1t3J7iCivcqdHunBVkNnjMgyMzof4pUW8e15dHbLZ95QpafhNtMKE6T4rQFh5fHSF",
+                "path": "m/0/2"
+              }
+            ],
+            "signatures": [
+              "",
+              "3045022100cb54262827812b9616e79ba06da9a2dceecbcb0dc78ad707398044a0551cfb4f0220219cf5d0123554b5ddbbcc3395566bb5a6599c9d4936281fef830738a7bba7f801"
+            ]
+          }
         }
       ]
     }
