@@ -150,12 +150,6 @@ describe('Signing Transactions', function () {
   // start up a chain and mine some blocks
   // to an address from Signer
   before(async () => {
-    // allow for spending coinbase outputs immediately
-    protocol.consensus.COINBASE_MATURITY = 0;
-    // only 1 BTC per block to force
-    // transactions to use many inputs
-    protocol.consensus.BASE_REWARD = Number(protocol.consensus.COIN);
-
     await logger.open();
     await workers.open();
     await blocks.open();
@@ -260,14 +254,8 @@ describe('Signing Transactions', function () {
         selection: 'random'
       });
 
-      const {paths, inputTXs, coins} =
-        p2pkhSignatureInputs(mtx, wallet, path.clone());
-
-      const signed = await manager.signTransaction(mtx, {
-        paths,
-        inputTXs,
-        coins
-      });
+      const inputData = p2pkhSignatureInputs(mtx, wallet, path.clone());
+      const signed = await manager.signTransaction(mtx, inputData);
 
       // verify the transaction
       assert.ok(signed.verify());
@@ -276,7 +264,7 @@ describe('Signing Transactions', function () {
     /*
      * note that this test uses the witwallet
      */
-    it.skip(`should sign a tx with segwit inputs (${vendor})`, async () => {
+    it(`should sign a tx with segwit inputs (${vendor})`, async () => {
       const mtx = new MTX();
 
       mtx.addOutput({
@@ -292,14 +280,8 @@ describe('Signing Transactions', function () {
         selection: 'random'
       });
 
-      const {paths, inputTXs, coins} =
-        p2pkhSignatureInputs(mtx, witwallet, witpath.clone());
-
-      const signed = await manager.signTransaction(mtx, {
-        paths,
-        inputTXs,
-        coins
-      });
+      const inputData = p2pkhSignatureInputs(mtx, witwallet, witpath.clone());
+      const signed = await manager.signTransaction(mtx, inputData);
 
       // verify the transaction
       assert.ok(signed.verify());
@@ -310,7 +292,7 @@ describe('Signing Transactions', function () {
      * from different paths work
      * note that this test uses the wallet
      */
-    it.skip(`should sign tx with many inputs (${vendor})`, async () => {
+    it(`should sign tx with many inputs (${vendor})`, async () => {
       for (let i = 0; i < 5; i++) {
         miner.addresses = [wallet.getReceive()];
         const block = await miner.mineBlock();
@@ -329,14 +311,8 @@ describe('Signing Transactions', function () {
         selection: 'random'
       });
 
-      const {paths, inputTXs, coins} =
-        p2pkhSignatureInputs(mtx, wallet, path.clone());
-
-      const signed = await manager.signTransaction(mtx, {
-        paths,
-        inputTXs,
-        coins
-      });
+      const inputData = p2pkhSignatureInputs(mtx, wallet, path.clone());
+      const signed = await manager.signTransaction(mtx, inputData);
 
       // verify the transaction
       assert.ok(signed.verify());

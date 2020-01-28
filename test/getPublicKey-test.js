@@ -6,7 +6,7 @@
 const assert = require('bsert');
 const {Network} = require('bcoin');
 const {Path, DeviceManager} = require('../lib/bsigner');
-const {AVAILABLE_VENDORS, vendors} = require('../lib/common');
+const {vendors} = require('../lib/common');
 const {testxpub} = require('./utils/key');
 const {getLogger, getTestVendors} = require('./utils/common');
 

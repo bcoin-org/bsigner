@@ -3,7 +3,7 @@
 const path = require('path');
 const assert = require('bsert');
 const Logger = require('blgr');
-const {HDPublicKey,KeyRing} = require('bcoin');
+const {HDPublicKey, KeyRing, Address} = require('bcoin');
 const {tmpdir} = require('os');
 const {randomBytes} = require('bcrypto/lib/random');
 const {parseVendors} = require('../../lib/common');
@@ -78,31 +78,31 @@ common.deriveFromAccountHDPublicKey = function deriveFromAccountHDPublicKey(opti
 /*
  * build the inputs to ledgerApp
  * this also works with p2wpkh as well
+ * NOTE: Does not work for nested p2wpkh.
  */
 common.p2pkhSignatureInputs = function p2pkhSignatureInputs(mtx, wallet, accountPath) {
-  const inputTXs = [];
-  const coins = [];
-  const paths = [];
+  const inputData = [];
 
   for (const input of mtx.inputs) {
+    const data = {};
+
     const prevhash = input.prevout.hash;
     const tx = wallet.getTX(prevhash);
-    inputTXs.push(tx);
-
     const coin = mtx.view.getCoinFor(input);
-    coins.push(coin);
 
+    const address = coin.getAddress();
+    const {branch, index} = wallet.getPath(address.getHash());
     const base = accountPath.clone();
-    const hash = input.getHash(coin);
-    const { branch, index } = wallet.getPath(hash);
-    paths.push(base.push(branch).push(index));
+
+    data.prevTX = tx;
+    data.coin = coin;
+    data.path = base.push(branch).push(index);
+    data.witness = address.type === Address.types.WITNESS;
+
+    inputData.push(data);
   }
 
-  return {
-    inputTXs,
-    coins,
-    paths
-  };
+  return inputData;
 };
 
 common.testdir = function testdir(name) {
