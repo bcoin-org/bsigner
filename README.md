@@ -82,17 +82,13 @@ const tx = await wallet.createTX({
   sign: false
 });
 
-const {coins,inputTXs,paths,mtx} = await prepareSign({
+const {inputData,mtx} = await prepareSign({
   tx: tx,
   wallet: walletClient.wallet(walletId),
   path: path.clone()
 });
 
-const signed = await hardware.signTransaction(mtx, {
-  paths,
-  inputTXs,
-  coins
-});
+const signed = await hardware.signTransaction(mtx, inputData);
 
 console.log(signed.verify());
 // true
