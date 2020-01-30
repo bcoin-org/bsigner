@@ -83,6 +83,16 @@ describe('Path', function () {
     assert.deepEqual(list, [0,0,0]);
   });
 
+  it('should clone', () => {
+    const path = Path.fromList([2147483692, 2147483649, 2147483651]);
+    path.push(0);
+    path.push(0);
+
+    const clone = path.clone();
+
+    assert.equal(path.toString(), clone.toString());
+  });
+
   it('should work up to 255 depth', () => {
     const input = [];
     for (let i = 0; i < 255; i++)
@@ -333,7 +343,8 @@ describe('Path', function () {
       account: Path.harden(0),
       strict: false
     });
-    for (let i = 0; i < 5; i++)
+
+    for (let i = 0; i < 2; i++)
       path = path.push(0);
 
     assert.ok(path);

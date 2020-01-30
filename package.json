@@ -40,5 +40,8 @@
   },
   "devDependencies": {
     "bmocha": "^1.0.1"
+  },
+  "browser": {
+    "./lib/internal/custom": "./lib/internal/custom-browser.js"
   }
 }
