@@ -13,7 +13,7 @@ const Proposal = require('bmultisig/lib/primitives/proposal');
 const MultisigClient = require('bmultisig/lib/client');
 const sigUtils = require('bmultisig/lib/utils/sig');
 const CosignerContext = require('./utils/cosigner-context');
-const {getLogger} = require('./utils/common');
+const {getLogger, getTestVendors} = require('./utils/common');
 const {CREATE} = Proposal.payloadType;
 
 /*
@@ -40,6 +40,7 @@ const NULL32 = Buffer.alloc(32);
 // global instance of a logger
 // can be passed to DeviceManager instance
 const logger = getLogger();
+const enabledVendors = getTestVendors();
 
 const cosignersGroup1 = [
   {
@@ -90,6 +91,7 @@ describe('Multisig', function() {
    * 4   - approve proposal by submitting valid signature
    * 5   - validate transaction
    */
+  const oldCBMaturity = protocol.consensus.COINBASE_MATURITY;
   before(async () => {
     // allow for spending coinbase outputs immediately
     protocol.consensus.COINBASE_MATURITY = 0;
@@ -140,11 +142,14 @@ describe('Multisig', function() {
     });
 
     manager = DeviceManager.fromOptions({
-      vendor: vendors.LEDGER,
+      vendor: enabledVendors,
       network: network,
       logger,
       [vendors.LEDGER]: {
         timeout: 0
+      },
+      [vendors.TREZOR]: {
+        debugTrezor: false
       }
     });
 
@@ -156,10 +161,18 @@ describe('Multisig', function() {
     await fullNode.open();
     await walletNode.ensure();
     await walletNode.open();
-    await manager.selectDevice(vendors.LEDGER);
+
+    for (const vendor of enabledVendors) {
+      try {
+        await manager.selectDevice(vendor);
+      } catch (e) {
+        throw new Error(`Could not select device for ${vendor}.`);
+      }
+    }
   });
 
   after(async () => {
+    protocol.consensus.COINBASE_MATURITY = oldCBMaturity;
     await logger.close();
     await manager.close();
     await walletNode.close();
@@ -183,7 +196,7 @@ describe('Multisig', function() {
    *
    * do this both for witness and standard wallets
    */
-  const walletTypes = ['witness','standard'];
+  const walletTypes = ['witness', 'standard'];
   const walletIds = ['foo', 'bar'];
   let minedSoFar = 0;
 
@@ -345,6 +358,10 @@ describe('Multisig', function() {
       // only have created a single proposal
       const proposal = proposals[0];
 
+      const xpubs = cosigners.map((cosigner) => {
+        return cosigner.ctx.xpub;
+      });
+
       // keep track of which cosigner it is iterating
       // over with j
       for (const [j, cosigner] of Object.entries(toApprove)) {
@@ -358,18 +375,15 @@ describe('Multisig', function() {
           txs: true
         });
 
-        const {paths,inputTXs,coins,scripts,mtx} = await prepareSignMultisig({
+        const {mtx, inputData} = await prepareSignMultisig({
           pmtx,
-          path: cosigner.path.clone()
+          xpubs,
+          m: 3,
+          path: cosigner.path.clone(),
+          witness: walletType === 'witness'
         });
 
-        const signatures = await manager.getSignatures(mtx, {
-          paths,
-          inputTXs,
-          coins,
-          scripts,
-          enc: 'hex'
-        });
+        const signatures = await manager.getSignatures(mtx, inputData);
 
         // do not broadcast explicitly, so we can assert on it
         const broadcast = false;
@@ -417,8 +431,7 @@ async function collectCosignerInfo(manager, cosigner) {
 
   const joinMessage = ctx.joinMessage;
 
-  const ledgerSignature = await manager.signMessage(proofPath, joinMessage);
-  const signature = ledgerSignature.toCoreSignature();
+  const signature = await manager.signMessage(proofPath, joinMessage);
 
   ctx.xpubProof = signature;
 }
