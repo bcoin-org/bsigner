@@ -22,6 +22,9 @@
     "nodejs"
   ],
   "author": "Mark Tyneway",
+  "contributors": [
+    "Nodari Chkuaselidze <nodar.chkuaselidze@gmail.com>"
+  ],
   "license": "MIT",
   "dependencies": {
     "bcfg": "^0.1.5",
@@ -36,7 +39,7 @@
     "bstring": "^0.3.5",
     "buffer-map": "0.0.5",
     "busb": "^0.1.1",
-    "btrezor-connect": "https://github.com/nodar-chkuaselidze/btrezor-connect"
+    "btrezor-connect": "https://github.com/nodar-chkuaselidze/btrezor-connect#semver:8.0.13-extended-1"
   },
   "devDependencies": {
     "bmocha": "^1.0.1"
