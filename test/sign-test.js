@@ -69,8 +69,13 @@ function readSignVectors(path) {
   json.vectors = json.vectors.map((vector) => {
     vector.tx = MTX.fromRaw(Buffer.from(vector.tx, 'hex'));
     vector.inputData = vector.inputData.map((data) => {
+      let prevTX;
+
       const coin = Coin.fromJSON(data.coin, json.network);
-      const prevTX = TX.fromRaw(Buffer.from(data.prevTX, 'hex'));
+
+      if (data.prevTX)
+        prevTX = TX.fromRaw(Buffer.from(data.prevTX, 'hex'));
+
       const witness = Boolean(data.witness);
       const {multisig, path} = data;
 
