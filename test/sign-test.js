@@ -53,7 +53,6 @@ describe('Sign Transaction', function () {
       it(`should sign ${signVector.description} (${vendor})`, async () => {
         await manager.selectDevice(vendor);
 
-        debugger;
         const {tx, inputData} = signVector;
         const mtx = await manager.signTransaction(tx, inputData);
 

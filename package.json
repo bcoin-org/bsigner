@@ -7,9 +7,9 @@
     "./lib/device/usb": "./lib/device/usb-browser.js"
   },
   "scripts": {
-    "test": "bmocha -c test/*",
-    "test:trezor": "bmocha -c test/* -g trezor",
-    "test:ledger": "bmocha -c test/* -g ledger",
+    "test": "echo \"Please use test:trezor or test:ledger\" && exit 1",
+    "test:trezor": "TEST_VENDOR=trezor bmocha --allow-multiple -c test/*-test.js",
+    "test:ledger": "TEST_VENDOR=ledger bmocha --allow-multiple -c test/*-test.js",
     "lint": "eslint $(cat .eslintfiles) || exit 0",
     "lint-ci": "eslint $(cat .eslintfiles)",
     "lint-file": "eslint"
