@@ -77,6 +77,9 @@ const cosignersGroup2 = [
 describe('Multisig', function() {
   this.timeout(1e7);
 
+  if (enabledVendors.size !== 1)
+    this.skip();
+
   /*
    * TODO: be sure to test both legacy and segwit
    * also, why does this test hang?
@@ -302,6 +305,8 @@ describe('Multisig', function() {
       // keep track of the running total
       minedSoFar += toMine;
 
+      // TODO: listen to wallet events.
+      await new Promise(r => setTimeout(r, 500));
       const nodeInfo = await nodeClient.getInfo();
       const walletInfo = await client.getInfo(walletId);
 
@@ -329,7 +334,7 @@ describe('Multisig', function() {
         timestamp: now(),
         txoptions: {
           rate: 1e3,
-          outputs: [{value: 1e5, address: changeAddress}]
+          outputs: [{value: 1e10, address: changeAddress}]
         }
       };
 
