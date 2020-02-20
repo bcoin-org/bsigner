@@ -389,6 +389,8 @@ const vectors = [
 ];
 
 describe('Input formats', function () {
+  const network = 'main';
+
   for (const vector of vectors) {
     it(`should create InputData from Options (${vector.name})`, function() {
       if (vector.fromOptions == null)
@@ -407,7 +409,7 @@ describe('Input formats', function () {
 
       for (const options of optionTypes) {
         const inputData = InputData.fromOptions(options);
-        assert.deepStrictEqual(inputData.toJSON(), vector.fromJSON);
+        assert.deepStrictEqual(inputData.getJSON('main'), vector.fromJSON);
       }
     });
 
@@ -419,18 +421,18 @@ describe('Input formats', function () {
 
       for (const options of optionTypes) {
         const inputData = new InputData(options);
-        assert.deepStrictEqual(inputData.toJSON(), vector.fromJSON);
+        assert.deepStrictEqual(inputData.getJSON(network), vector.fromJSON);
       }
     });
 
     it(`should create InputData from JSON (${vector.name})`, () => {
       const inputData = InputData.fromJSON(vector.fromJSON);
-      assert.deepStrictEqual(inputData.getJSON(), vector.fromJSON);
+      assert.deepStrictEqual(inputData.getJSON(network), vector.fromJSON);
     });
 
     it(`should create InputData from JSON with Coin (${vector.name})`, () => {
       const inputData = InputData.fromJSON(vector.fromJSONCoin);
-      assert.deepStrictEqual(inputData.getJSON(), vector.fromJSON);
+      assert.deepStrictEqual(inputData.getJSON(network), vector.fromJSON);
     });
   }
 });

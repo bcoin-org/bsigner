@@ -99,6 +99,8 @@ common.p2pkhSignatureInputs = function p2pkhSignatureInputs(mtx, wallet, account
     data.path = base.push(branch).push(index);
     // This will fail with Nested addresses.
     data.witness = address.type === Address.types.WITNESS;
+
+    inputData.push(data);
   }
 
   return inputData;

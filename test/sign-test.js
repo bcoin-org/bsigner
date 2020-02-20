@@ -3,10 +3,11 @@
 
 'use strict';
 
-const {Network, MTX, TX, Coin} = require('bcoin');
+const {Network, MTX} = require('bcoin');
 const {DeviceManager} = require('../lib/bsigner');
 const {vendors} = require('../lib/common');
 const {getLogger, getTestVendors} = require('./utils/common');
+const {InputData} = require('../lib/inputData');
 
 const logger = getLogger();
 const enabledVendors = getTestVendors();
@@ -52,10 +53,11 @@ describe('Sign Transaction', function () {
       it(`should sign ${signVector.description} (${vendor})`, async () => {
         await manager.selectDevice(vendor);
 
+        debugger;
         const {tx, inputData} = signVector;
-        await manager.signTransaction(tx, inputData);
+        const mtx = await manager.signTransaction(tx, inputData);
 
-        tx.check();
+        mtx.check();
       });
     }
   }
@@ -68,21 +70,7 @@ function readSignVectors(path) {
 
   json.vectors = json.vectors.map((vector) => {
     vector.tx = MTX.fromRaw(Buffer.from(vector.tx, 'hex'));
-    vector.inputData = vector.inputData.map((data) => {
-      let prevTX;
-
-      const coin = Coin.fromJSON(data.coin, json.network);
-
-      if (data.prevTX)
-        prevTX = TX.fromRaw(Buffer.from(data.prevTX, 'hex'));
-
-      const witness = Boolean(data.witness);
-      const {multisig, path} = data;
-
-      vector.tx.view.addCoin(coin);
-
-      return {path, witness, multisig, coin, prevTX};
-    });
+    vector.inputData = vector.inputData.map(data => InputData.fromJSON(data));
 
     return vector;
   });
