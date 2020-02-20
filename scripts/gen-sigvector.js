@@ -66,6 +66,8 @@ const Script = require('bcoin/lib/script/script');
 const {opcodes} = require('bcoin/lib/script/common');
 const {HDPrivateKey} = hd;
 const MTX = require('bcoin/lib/primitives/mtx');
+const Outpoint = require('bcoin/lib/primitives/outpoint');
+const Output = require('bcoin/lib/primitives/output');
 const {phrase} = require('../test/utils/key');
 const {Path} = require('../lib/path');
 const fundUtil = require('./utils/fund');
@@ -192,7 +194,8 @@ async function generateP2PKH(witness, nested) {
     tx: tx.toRaw().toString('hex'),
     inputData: [{
       prevTX: txs[0].toRaw().toString('hex'),
-      coin: coins[0].getJSON(network),
+      prevout: outpointFromCoin(coins[0]).toJSON(),
+      output: outputFromCoin(coins[0]).toJSON(),
       path: path.toString(),
       witness: witness
     }]
@@ -228,17 +231,19 @@ async function generateP2SH(witness, nested) {
       path: path.toString(),
       witness: witness,
       prevTX: txs[0].toRaw().toString('hex'),
-      coin: coins[0].getJSON(network),
+      prevout: outpointFromCoin(coins[0]).toJSON(),
+      output: outputFromCoin(coins[0]).toJSON(),
       multisig: {
         m: 2,
         pubkeys: [{
           xpub: xpubs[0].xpubkey(network),
-          path: Path.fromList(path.toList().slice(3, 5)).toString()
+          path: Path.fromList(path.toList().slice(3, 5)).toString(),
+          signature: ''
         }, {
           xpub: xpubs[1].xpubkey(network),
-          path: Path.fromList(path.toList().slice(3, 5)).toString()
-        }],
-        signatures: ['', ourSignature]
+          path: Path.fromList(path.toList().slice(3, 5)).toString(),
+          signature: ourSignature
+        }]
       }
     }]
   };
@@ -319,7 +324,8 @@ async function createMultitypeTransaction(witness, nested) {
     inputData.path = input.path.toString();
     inputData.witness = witness;
     inputData.prevTX = input.txs[0].toRaw().toString('hex');
-    inputData.coin = input.coins[0].getJSON(network);
+    inputData.prevout = outpointFromCoin(input.coins[0]).toJSON();
+    inputData.output = outputFromCoin(input.coins[0]).toJSON(),
 
     trezorInput.inputData.push(inputData);
   }
@@ -334,17 +340,19 @@ async function createMultitypeTransaction(witness, nested) {
       witness: witness,
       path: input.path.toString(),
       prevTX: input.txs[0].toRaw().toString('hex'),
-      coin: input.coins[0].getJSON(network),
+      prevout: outpointFromCoin(input.coins[0]).toJSON(),
+      output: outputFromCoin(input.coins[0]).toJSON(),
       multisig: {
         m: 2,
         pubkeys: [{
           xpub: input.xpubs[0].xpubkey(network),
-          path: Path.fromList(input.path.toList().slice(3, 5)).toString()
+          path: Path.fromList(input.path.toList().slice(3, 5)).toString(),
+          signature: ''
         }, {
           xpub: input.xpubs[1].xpubkey(network),
-          path: Path.fromList(input.path.toList().slice(3, 5)).toString()
-        }],
-        signatures: ['', signature]
+          path: Path.fromList(input.path.toList().slice(3, 5)).toString(),
+          signature: signature
+        }]
       }
     });
   }
@@ -507,4 +515,15 @@ function findInput(tx, ring) {
 
   assert(foundInput, 'Could not find input.');
   return foundInput;
+}
+
+function outputFromCoin(coin) {
+  return new Output(coin);
+}
+
+function outpointFromCoin(coin) {
+  return Outpoint.fromOptions({
+    hash: coin.hash,
+    index: coin.index
+  });
 }
