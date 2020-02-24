@@ -363,29 +363,17 @@ describe('Multisig', function() {
       // only have created a single proposal
       const proposal = proposals[0];
 
-      const xpubs = cosigners.map((cosigner) => {
-        return cosigner.ctx.xpub;
-      });
-
       // keep track of which cosigner it is iterating
       // over with j
       for (const [j, cosigner] of Object.entries(toApprove)) {
         const {ctx} = cosigner;
         const wallet = client.wallet(walletId, ctx.token.toString('hex'));
 
-        // response is {tx,paths,scripts,txs}
-        const pmtx = await wallet.getProposalMTX(proposal.id, {
-          paths: true,
-          scripts: true,
-          txs: true
-        });
-
         const {mtx, inputData} = await prepareSignMultisig({
-          pmtx,
-          xpubs,
-          m: 3,
-          path: cosigner.path.clone(),
-          witness: walletType === 'witness'
+          pid: proposal.id,
+          wallet: wallet,
+          network: network,
+          path: cosigner.path.clone()
         });
 
         const signatures = await manager.getSignatures(mtx, inputData);
