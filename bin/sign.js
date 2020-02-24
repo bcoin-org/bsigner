@@ -8,8 +8,8 @@ const Config = require('bcfg');
 const Logger = require('blgr');
 const assert = require('bsert');
 
-const {prepareSign} = require('../src/app');
-const {Hardware} = require('../src/hardware');
+const {prepareSign} = require('../lib/app');
+const DeviceManager = require('../lib/manager/manager');
 
 class CLI {
   constructor() {
@@ -27,6 +27,9 @@ class CLI {
         uri: 'url'
       }
     });
+
+    this.manager = null;
+    this.logger = Logger.global;
 
     this.config.load({
       argv: true,
@@ -53,15 +56,16 @@ class CLI {
     }
 
     const network = Network.get(this.config.str('network'));
+    const vendor = this.config.str('vendor');
 
-    this.hardware = Hardware.fromOptions({
-      vendor: this.config.str('vendor'),
-      retry: this.config.bool('retry', true),
-      logger: this.logger.context('hardware'),
-      network: network
+    this.manager = DeviceManager.fromOptions({
+      logger: this.logger,
+      network: network,
+      vendor: vendor
     });
 
-    await this.hardware.initialize();
+    await this.manager.open();
+    await this.manager.selectDevice(vendor.toUpperCase());
 
     /*
      * TODO: way to specify arbitrary
@@ -115,18 +119,14 @@ class CLI {
       ]
     });
 
-    const {coins,inputTXs,paths,mtx} = await prepareSign({
+    const {mtx, inputData} = await prepareSign({
       tx: tx,
       wallet: this.wallet,
       account,
       network: network
     });
 
-    const signed = await this.hardware.signTransaction(mtx, {
-      paths,
-      inputTXs,
-      coins
-    });
+    const signed = await this.manager.signTransaction(mtx, inputData);
 
     if (!signed)
       throw new Error('problem signing transaction');
@@ -150,7 +150,7 @@ class CLI {
   }
 
   async destroy() {
-    await this.hardware.close();
+    await this.manager.close();
   }
 
   validateConfig() {
