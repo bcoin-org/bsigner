@@ -5,10 +5,10 @@
 
 'use strict';
 
-const LedgerDeviceManager = require('../lib/device/ledgermanager');
-const TrezorDeviceManager = require('../lib/device/trezormanager');
-const DeviceManager = require('../lib/device/manager');
-const { vendors } = require('../lib/common');
+const LedgerDeviceManager = require('../lib/manager/ledger');
+const TrezorDeviceManager = require('../lib/manager/trezor');
+const DeviceManager = require('../lib/manager/manager');
+const {vendors} = require('../lib/common');
 const Logger = require('blgr');
 const Network = require('bcoin/lib/protocol/network');
 
@@ -44,8 +44,8 @@ const runDeviceManager = async (manager, network) => {
 
   const pubkey = await manager.getPublicKey('m/44\'/1\'/0\'');
   console.log('Public Key: ', pubkey.xpubkey(network));
-  const pubkey1 = await manager.getPublicKey('m/44\'/1\'/1\'');
-  console.log('Public Key: ', pubkey1.xpubkey(network));
+  const xpubkey = await manager.getXPUB('m/44\'/1\'/0\'');
+  console.log('Public Key: ', xpubkey);
 
   await manager.close();
 };
