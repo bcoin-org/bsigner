@@ -4,7 +4,8 @@
   "description": "transaction signing support for bcoin",
   "main": "lib/bsigner.js",
   "browser": {
-    "./lib/device/usb": "./lib/device/usb-browser.js"
+    "./lib/internal/usb": "./lib/internal/usb-browser.js",
+    "./lib/internal/custom": "./lib/internal/custom-browser.js"
   },
   "scripts": {
     "test": "echo \"Please use test:trezor or test:ledger\" && exit 1",
@@ -43,8 +44,5 @@
   },
   "devDependencies": {
     "bmocha": "^1.0.1"
-  },
-  "browser": {
-    "./lib/internal/custom": "./lib/internal/custom-browser.js"
   }
 }
