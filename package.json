@@ -8,7 +8,8 @@
     "./lib/internal/custom": "./lib/internal/custom-browser.js"
   },
   "scripts": {
-    "test": "echo \"Please use test:trezor or test:ledger\" && exit 1",
+    "test": "echo \"\\033[0;33mPlease use test:trezor or test:ledger\nRunning using memory device\\033[0m\" && TEST_VENDOR=memory bmocha -c test/*-test.js",
+    "test:memory": "TEST_VENDOR=memory bmocha -c test/*-test.js",
     "test:trezor": "TEST_VENDOR=trezor bmocha --allow-multiple -c test/*-test.js",
     "test:ledger": "TEST_VENDOR=ledger bmocha --allow-multiple -c test/*-test.js",
     "lint": "eslint $(cat .eslintfiles) || exit 0",
