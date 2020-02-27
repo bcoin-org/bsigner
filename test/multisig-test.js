@@ -12,9 +12,11 @@ const bmultisig = require('bmultisig/lib/bmultisig');
 const Proposal = require('bmultisig/lib/primitives/proposal');
 const MultisigClient = require('bmultisig/lib/client');
 const sigUtils = require('bmultisig/lib/utils/sig');
+const {CREATE} = Proposal.payloadType;
+
 const CosignerContext = require('./utils/cosigner-context');
 const {getLogger, getTestVendors} = require('./utils/common');
-const {CREATE} = Proposal.payloadType;
+const {phrase} = require('./utils/key');
 
 /*
  * file level constants and globals
@@ -153,6 +155,10 @@ describe('Multisig', function() {
       },
       [vendors.TREZOR]: {
         debugTrezor: false
+      },
+      [vendors.MEMORY]: {
+        // configure default device of memory device manager.
+        device: { phrase }
       }
     });
 
@@ -167,7 +173,8 @@ describe('Multisig', function() {
 
     for (const vendor of enabledVendors) {
       try {
-        await manager.selectDevice(vendor);
+        const device = await manager.selectDevice(vendor);
+        await device.open();
       } catch (e) {
         throw new Error(`Could not select device for ${vendor}.`);
       }

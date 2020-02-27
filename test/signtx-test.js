@@ -23,7 +23,7 @@ const {
   p2pkhSignatureInputs,
   testdir
 } = require('./utils/common');
-const {testxpub} = require('./utils/key');
+const {testxpub, phrase} = require('./utils/key');
 
 /*
  * test signing
@@ -162,6 +162,10 @@ describe('Signing Transactions', function () {
       logger,
       [vendors.LEDGER]: {
         timeout: 0
+      },
+      [vendors.MEMORY]: {
+        // configure default device of memory device manager.
+        device: { phrase }
       }
     });
 
@@ -240,7 +244,8 @@ describe('Signing Transactions', function () {
     });
 
     it(`should select device ${vendor}`, async () => {
-      await manager.selectDevice(vendor);
+      const device = await manager.selectDevice(vendor);
+      await device.open();
     });
 
     it(`should sign tx with 1 input (${vendor})`, async () => {

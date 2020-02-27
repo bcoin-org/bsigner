@@ -7,6 +7,7 @@ const {Network, MTX} = require('bcoin');
 const {DeviceManager} = require('../lib/bsigner');
 const {vendors} = require('../lib/common');
 const {getLogger, getTestVendors} = require('./utils/common');
+const {phrase} = require('./utils/key');
 const {InputData} = require('../lib/inputData');
 
 const logger = getLogger();
@@ -29,6 +30,10 @@ describe('Sign Transaction', function () {
       logger,
       [vendors.LEDGER]: {
         timeout: 0
+      },
+      [vendors.MEMORY]: {
+        // configure default device of memory device manager.
+        device: { phrase }
       }
     });
 
@@ -51,12 +56,14 @@ describe('Sign Transaction', function () {
   for (const vendor of enabledVendors) {
     for (const signVector of signVectors.vectors) {
       it(`should sign ${signVector.description} (${vendor})`, async () => {
-        await manager.selectDevice(vendor);
+        const device = await manager.selectDevice(vendor);
+        await device.open();
 
         const {tx, inputData} = signVector;
         const mtx = await manager.signTransaction(tx, inputData);
 
         mtx.check();
+        await device.close();
       });
     }
   }

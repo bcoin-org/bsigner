@@ -9,6 +9,7 @@ const {Path, DeviceManager} = require('../lib/bsigner');
 const {vendors} = require('../lib/common');
 const {testxpub} = require('./utils/key');
 const {getLogger, getTestVendors} = require('./utils/common');
+const {phrase} = require('./utils/key');
 
 const network = Network.get('regtest');
 const logger = getLogger();
@@ -31,6 +32,10 @@ describe('Get Public Key', function () {
       logger,
       [vendors.LEDGER]: {
         timeout: 0
+      },
+      [vendors.MEMORY]: {
+        // configure default device of memory device manager.
+        device: { phrase }
       }
     });
 
@@ -52,7 +57,8 @@ describe('Get Public Key', function () {
 
   for (const vendor of enabledVendors) {
     it(`should get public key from ${vendor}`, async function() {
-      await manager.selectDevice(vendor);
+      const device = await manager.selectDevice(vendor);
+      await device.open();
 
       for (let i = 0; i <= 0; i++) {
         const accountIndex = i;
@@ -79,6 +85,8 @@ describe('Get Public Key', function () {
         const expected = testpubkey.xpubkey(network.type);
         assert.equal(xpub, expected);
       }
+
+      await device.close();
     });
   }
 });

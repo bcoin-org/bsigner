@@ -9,6 +9,7 @@ const {NodeClient, WalletClient} = require('bclient');
 const {Path, DeviceManager, prepareSign, vendors} = require('../lib/bsigner');
 const {getLogger, getTestVendors} = require('./utils/common');
 const {sleep} = require('../lib/common');
+const {phrase} = require('./utils/key');
 
 const n = 'regtest';
 const network = Network.get(n);
@@ -59,12 +60,16 @@ describe('Nested Signing', function() {
     });
 
     manager = DeviceManager.fromOptions({
+      network,
+      logger,
       vendor: enabledVendors,
       [vendors.LEDGER]: {
         timeout: 0
       },
-      network,
-      logger
+      [vendors.MEMORY]: {
+        // configure default device of memory device manager.
+        device: { phrase }
+      }
     });
 
     fullNode.use(wallet.plugin);
@@ -79,7 +84,8 @@ describe('Nested Signing', function() {
 
     for (const vendor of enabledVendors) {
       try {
-        await manager.selectDevice(vendor);
+        const device = await manager.selectDevice(vendor);
+        await device.open();
       } catch (e) {
         throw new Error(`Could not select device for ${vendor}.`);
       }
@@ -140,7 +146,8 @@ describe('Nested Signing', function() {
 
   for (const vendor of enabledVendors) {
     it(`should be able to create a valid spend (${vendor})`, async () => {
-      await manager.selectDevice(vendor);
+      const device = await manager.selectDevice(vendor);
+      await device.open();
 
       const {receiveAddress} = await walletClient.getAccount(walletId, 'default');
 
@@ -162,6 +169,7 @@ describe('Nested Signing', function() {
       const signed = await manager.signTransaction(mtx, inputData);
 
       assert.ok(signed.verify());
+      await device.close();
     });
   }
 });
