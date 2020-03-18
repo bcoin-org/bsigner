@@ -15,7 +15,7 @@ const {
   Network
 } = require('bcoin');
 
-const {Path, DeviceManager, vendors} = require('../lib/bsigner');
+const {Path, Signer, vendors} = require('../lib/bsigner');
 const MemWallet = require('./utils/memwallet');
 const {
   getLogger,
@@ -156,7 +156,7 @@ describe('Signing Transactions', function () {
     await chain.open();
     await mempool.open();
 
-    manager = DeviceManager.fromOptions({
+    manager = Signer.fromOptions({
       vendor: enabledVendors,
       network,
       logger,

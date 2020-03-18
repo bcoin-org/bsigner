@@ -4,7 +4,7 @@
 'use strict';
 
 const assert = require('bsert');
-const {Path, DeviceManager, generateToken, prepareSignMultisig, vendors} =
+const {Path, Signer, generateToken, prepareSignMultisig, vendors} =
   require('../lib/bsigner');
 const {wallet, Network, protocol, FullNode} = require('bcoin');
 const {NodeClient} = require('bclient');
@@ -146,7 +146,7 @@ describe('Multisig', function() {
       network: network.type
     });
 
-    manager = DeviceManager.fromOptions({
+    manager = Signer.fromOptions({
       vendor: enabledVendors,
       network: network,
       logger,

@@ -9,7 +9,7 @@ const Logger = require('blgr');
 const assert = require('bsert');
 
 const {prepareSign} = require('../lib/app');
-const DeviceManager = require('../lib/manager/manager');
+const Signer = require('../lib/signer');
 
 class CLI {
   constructor() {
@@ -58,7 +58,7 @@ class CLI {
     const network = Network.get(this.config.str('network'));
     const vendor = this.config.str('vendor');
 
-    this.manager = DeviceManager.fromOptions({
+    this.manager = Signer.fromOptions({
       logger: this.logger,
       network: network,
       vendor: vendor

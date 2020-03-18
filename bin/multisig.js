@@ -8,7 +8,7 @@ const MultisigClient = require('bmultisig/lib/client');
 const Logger = require('blgr');
 
 const {Path} = require('../lib/path');
-const DeviceManager = require('../lib/manager/manager');
+const Signer = require('../lib/signer');
 const {prepareSignMultisig, generateToken, guessPath} = require('../lib/app');
 
 /*
@@ -120,7 +120,7 @@ class CLI {
      * initialize hardware
      */
     const vendor = this.config.str('vendor');
-    this.manager = DeviceManager.fromOptions({
+    this.manager = Signer.fromOptions({
       logger: this.logger,
       network: network,
       vendor: vendor

@@ -5,7 +5,7 @@
 
 const assert = require('bsert');
 const {Network} = require('bcoin');
-const {Path, DeviceManager} = require('../lib/bsigner');
+const {Path, Signer} = require('../lib/bsigner');
 const {vendors} = require('../lib/common');
 const {testxpub} = require('./utils/key');
 const {getLogger, getTestVendors} = require('./utils/common');
@@ -26,7 +26,7 @@ describe('Get Public Key', function () {
   before(async () => {
     await logger.open();
 
-    manager = DeviceManager.fromOptions({
+    manager = Signer.fromOptions({
       vendor: enabledVendors,
       network,
       logger,

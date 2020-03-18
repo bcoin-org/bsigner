@@ -6,7 +6,7 @@
 const assert = require('bsert');
 const {wallet, Network, protocol, FullNode} = require('bcoin');
 const {NodeClient, WalletClient} = require('bclient');
-const {Path, DeviceManager, prepareSign, vendors} = require('../lib/bsigner');
+const {Path, Signer, prepareSign, vendors} = require('../lib/bsigner');
 const {getLogger, getTestVendors} = require('./utils/common');
 const {sleep} = require('../lib/common');
 const {phrase} = require('./utils/key');
@@ -59,7 +59,7 @@ describe('Nested Signing', function() {
       network: network.type
     });
 
-    manager = DeviceManager.fromOptions({
+    manager = Signer.fromOptions({
       network,
       logger,
       vendor: enabledVendors,

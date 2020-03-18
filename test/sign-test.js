@@ -4,7 +4,7 @@
 'use strict';
 
 const {Network, MTX} = require('bcoin');
-const {DeviceManager} = require('../lib/bsigner');
+const {Signer} = require('../lib/bsigner');
 const {vendors} = require('../lib/common');
 const {getLogger, getTestVendors} = require('./utils/common');
 const {phrase} = require('./utils/key');
@@ -24,7 +24,7 @@ describe('Sign Transaction', function () {
   before(async () => {
     await logger.open();
 
-    manager = DeviceManager.fromOptions({
+    manager = Signer.fromOptions({
       vendor: enabledVendors,
       network,
       logger,
