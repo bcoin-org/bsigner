@@ -5,15 +5,11 @@
 
 'use strict';
 
-const LedgerDeviceManager = require('../lib/manager/ledger');
-const TrezorDeviceManager = require('../lib/manager/trezor');
-const DeviceManager = require('../lib/manager/manager');
-const {vendors} = require('../lib/common');
+const {Signer} = require('../lib/bsigner');
 const Logger = require('blgr');
 const Network = require('bcoin/lib/protocol/network');
 
-// 'TREZOR' | 'LEDGER' | 'GENERIC'
-const MANAGER = (process.env.MANAGER || 'GENERIC').toUpperCase();
+// 'TREZOR' | 'LEDGER' | 'MEMORY'
 const VENDOR = (process.env.VENDOR || 'ANY').toUpperCase();
 
 const runDeviceManager = async (manager, network) => {
@@ -36,17 +32,15 @@ const runDeviceManager = async (manager, network) => {
   });
 
   await manager.open();
-
-  if (MANAGER === 'GENERIC')
-    await manager.selectDevice(VENDOR === 'ANY' ? 'LEDGER' : VENDOR);
-  else
-    await manager.selectDevice();
+  const device = await manager.selectDevice(VENDOR);
+  await device.open();
 
   const pubkey = await manager.getPublicKey('m/44\'/1\'/0\'');
   console.log('Public Key: ', pubkey.xpubkey(network));
   const xpubkey = await manager.getXPUB('m/44\'/1\'/0\'');
   console.log('Public Key: ', xpubkey);
 
+  await device.close();
   await manager.close();
 };
 
@@ -55,25 +49,11 @@ const runDeviceManager = async (manager, network) => {
   const logger = new Logger('spam');
   await logger.open();
 
-  let manager;
-  switch (MANAGER) {
-    case vendors.LEDGER: {
-      manager = new LedgerDeviceManager({ network, logger });
-      break;
-    }
-    case vendors.TREZOR: {
-      manager = new TrezorDeviceManager({ network, logger });
-      break;
-    }
-    case 'GENERIC': {
-      const vendor = VENDOR;
-      manager = new DeviceManager({ network, logger, vendor });
-      break;
-    }
-    default: {
-      throw new Error(`Can not use ${MANAGER} as manager.`);
-    }
-  }
+  const manager = new Signer({
+    network,
+    logger,
+    vendor: VENDOR
+  });
 
   await runDeviceManager(manager, network);
   await logger.close();
