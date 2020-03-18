@@ -4,14 +4,19 @@
 'use strict';
 
 const assert = require('bsert');
-const Logger = require('blgr');
-const {Path, Hardware, generateToken, prepareSignMultisig} =
+const {Path, Signer, generateToken, prepareSignMultisig, vendors} =
   require('../lib/bsigner');
 const {wallet, Network, protocol, FullNode} = require('bcoin');
 const {NodeClient} = require('bclient');
 const bmultisig = require('bmultisig/lib/bmultisig');
 const Proposal = require('bmultisig/lib/primitives/proposal');
-const {MultisigClient} = require('bmultisig-client');
+const MultisigClient = require('bmultisig/lib/client');
+const sigUtils = require('bmultisig/lib/utils/sig');
+const {CREATE} = Proposal.payloadType;
+
+const CosignerContext = require('./utils/cosigner-context');
+const {getLogger, getTestVendors} = require('./utils/common');
+const {phrase} = require('./utils/key');
 
 /*
  * file level constants and globals
@@ -31,47 +36,51 @@ let nodeClient;
 // bclient.WalletClient
 let client;
 // signer
-let hardware;
+let manager;
 // null bytes
 const NULL32 = Buffer.alloc(32);
 // global instance of a logger
-// can be passed to Hardware instance
-const logger = new Logger('debug');
+// can be passed to DeviceManager instance
+const logger = getLogger();
+const enabledVendors = getTestVendors();
 
-// keep track of join key to allow other
-// cosigners to join
-let joinKey;
-
-// cosigner info
-const cosignersInfo = {
-  one: {
+const cosignersGroup1 = [
+  {
     path: Path.fromList([44,1,0], true),
-    name: 'one'
-  },
-  two: {
+    name: 'one',
+    ctx: null
+  }, {
     path: Path.fromList([44,1,1], true),
-    name: 'two'
-  },
-  three: {
+    name: 'two',
+    ctx: null
+  }, {
     path: Path.fromList([44,1,2], true),
-    name: 'three'
-  },
-  four: {
-    path: Path.fromList([44,1,3], true),
-    name: 'four'
-  },
-  five: {
-    path: Path.fromList([44,1,4], true),
-    name: 'five'
-  },
-  six: {
-    path: Path.fromList([44,1,5], true),
-    name: 'six'
+    name: 'three',
+    ctx: null
   }
-};
+];
+
+const cosignersGroup2 = [
+  {
+    path: Path.fromList([44,1,3], true),
+    name: 'four',
+    ctx: null
+  }, {
+    path: Path.fromList([44,1,4], true),
+    name: 'five',
+    ctx: null
+  }, {
+    path: Path.fromList([44,1,5], true),
+    name: 'six',
+    ctx: null
+  }
+];
 
 describe('Multisig', function() {
   this.timeout(1e7);
+
+  if (enabledVendors.size !== 1)
+    this.skip();
 
   /*
    * TODO: be sure to test both legacy and segwit
@@ -87,6 +96,7 @@ describe('Multisig', function() {
    * 4   - approve proposal by submitting valid signature
    * 5   - validate transaction
    */
+  const oldCBMaturity = protocol.consensus.COINBASE_MATURITY;
   before(async () => {
     // allow for spending coinbase outputs immediately
     protocol.consensus.COINBASE_MATURITY = 0;
@@ -111,7 +121,8 @@ describe('Multisig', function() {
       // to work, this seems like a bug
       walletAuth: true,
       // be sure to set the admin token
-      adminToken: NULL32.toString('hex')
+      adminToken: NULL32.toString('hex'),
+      logger: logger
     });
 
     fullNode = new FullNode({
@@ -135,20 +146,47 @@ describe('Multisig', function() {
       network: network.type
     });
 
-    hardware = Hardware.fromOptions({
-      vendor: 'ledger',
+    manager = Signer.fromOptions({
+      vendor: enabledVendors,
       network: network,
-      logger
+      logger,
+      [vendors.LEDGER]: {
+        timeout: 0
+      },
+      [vendors.TREZOR]: {
+        debugTrezor: false
+      },
+      [vendors.MEMORY]: {
+        // configure default device of memory device manager.
+        device: { phrase }
+      }
     });
 
     await logger.open();
-    await hardware.initialize();
+    await manager.open();
     // be sure to open the full node
     // before opening the wallet server
     await fullNode.ensure();
     await fullNode.open();
     await walletNode.ensure();
     await walletNode.open();
+
+    for (const vendor of enabledVendors) {
+      try {
+        const device = await manager.selectDevice(vendor);
+        await device.open();
+      } catch (e) {
+        throw new Error(`Could not select device for ${vendor}.`);
+      }
+    }
+  });
+
+  after(async () => {
+    protocol.consensus.COINBASE_MATURITY = oldCBMaturity;
+    await logger.close();
+    await manager.close();
+    await walletNode.close();
+    await fullNode.close();
   });
 
   /*
@@ -168,48 +206,77 @@ describe('Multisig', function() {
    *
    * do this both for witness and standard wallets
    */
-  const walletTypes = ['witness','standard'];
+  const walletTypes = ['witness', 'standard'];
   const walletIds = ['foo', 'bar'];
   let minedSoFar = 0;
+
   for (const [ii, walletType] of Object.entries(walletTypes)) {
+    // wallet id used in many places
+    const walletId = walletIds[ii];
+
     /*
      * use different cosigners for each set of tests
      */
-    let cosigners;
-    if (walletType === 'standard')
-      cosigners = [cosignersInfo.one, cosignersInfo.two, cosignersInfo.three];
-    else
-      cosigners = [cosignersInfo.four, cosignersInfo.five, cosignersInfo.six];
+    const cosignersInfo = walletType === 'standard'
+                        ? cosignersGroup1
+                        : cosignersGroup2;
 
-    // wallet id used in many places
-    const walletId = walletIds[ii];
+    const firstCosigner = {
+      path: cosignersInfo[0].path,
+      ctx: new CosignerContext({
+        network: network,
+        walletName: walletId,
+        name: cosignersInfo[0].name
+      })
+    };
+
+    const cosigners = [firstCosigner];
+
+    for (const cosignerInfo of cosignersInfo.slice(1)) {
+      const cosigner = {
+        path: cosignerInfo.path,
+        ctx: new CosignerContext({
+          network: network,
+          walletName: walletId,
+          name: cosignerInfo.name,
+          joinPrivKey: firstCosigner.ctx.joinPrivKey
+        })
+      };
+
+      cosigners.push(cosigner);
+    }
+
+    it('should prepare cosigner data', async () => {
+      // This will collect
+      //  - account public key
+      //  - token
+      //  - xpub proof
+      // That are necessary for signing and further operations and
+      // collect them inside Cosigner Context for testing purposes.
+      for (const cosigner of cosigners) {
+        await collectCosignerInfo(manager, cosigner);
+      }
+    });
 
     it('should create a multisig wallet', async () => {
       const cosigner = cosigners[0];
 
-      const token = await generateToken(hardware, cosigner.path);
-      const hdpubkey = await hardware.getPublicKey(cosigner.path);
-      const xpub = hdpubkey.xpubkey(network.type);
+      const joinPubKey = cosigner.ctx.joinPubKey.toString('hex');
+      const options = cosigner.ctx.toHTTPOptions();
 
       // if wallet type is witness, make a segwit wallet
       const witness = walletType === 'witness';
 
       const response = await client.createWallet(walletId, {
         witness: witness,
-        accountKey: xpub,
-        watchOnly: true,
         m: 3,
         n: 3,
-        cosignerName: cosigner.name,
-        cosignerPath: cosigner.path.toString(),
-        cosignerToken: token.toString('hex')
+        joinPubKey: joinPubKey,
+        ...options
       });
 
       assert.ok(response);
       assert.equal(response.initialized, false);
-
-      // keep track of the join key
-      joinKey = response.joinKey;
     });
 
     /*
@@ -221,21 +288,10 @@ describe('Multisig', function() {
     it('should join with other cosigners', async () => {
       const toJoin = [cosigners[1], cosigners[2]];
 
-      for (const cosigner of toJoin) {
-        const token = await generateToken(hardware, cosigner.path);
+      for (const {ctx} of toJoin) {
+        const wallet = client.wallet(walletId, ctx.token.toString('hex'));
 
-        const hdpubkey = await hardware.getPublicKey(cosigner.path);
-        const xpub = hdpubkey.xpubkey(network.type);
-
-        const wallet = client.wallet(walletId, token.toString('hex'));
-
-        const response = await wallet.joinWallet({
-          cosignerName: cosigner.name,
-          cosignerPath: cosigner.path.toString(),
-          cosignerToken: token.toString('hex'),
-          joinKey: joinKey,
-          accountKey: xpub
-        });
+        const response = await wallet.joinWallet(ctx.toHTTPOptions());
         assert.ok(response);
       }
 
@@ -256,6 +312,8 @@ describe('Multisig', function() {
       // keep track of the running total
       minedSoFar += toMine;
 
+      // TODO: listen to wallet events.
+      await new Promise(r => setTimeout(r, 500));
       const nodeInfo = await nodeClient.getInfo();
       const walletInfo = await client.getInfo(walletId);
 
@@ -273,24 +331,31 @@ describe('Multisig', function() {
      */
     it('should create a proposal', async () => {
       const cosigner = cosigners[0];
-      const token = await generateToken(hardware, cosigner.path);
+      const token = await generateToken(manager, cosigner.path);
 
       const wallet = client.wallet(walletId, token.toString('hex'));
       const {changeAddress} = await wallet.getAccount();
 
       const opts = {
         memo: 'foobar mike jones',
-        cosigner: cosigner.name,
-        rate: 1e3,
-        sign: false,
-        account: 'default',
-        outputs: [{value: 1e5, address: changeAddress}]
+        timestamp: now(),
+        txoptions: {
+          rate: 1e3,
+          outputs: [{value: 1e10, address: changeAddress}]
+        }
       };
 
-      const proposal = await wallet.createProposal(opts);
+      const signature = cosigner.ctx.signProposal(CREATE, opts);
+
+      const proposal = await wallet.createProposal({
+        proposal: opts,
+        signature: signature.toString('hex')
+      });
+
+      const authorDetails = proposal.cosignerDetails[proposal.author];
 
       assert.equal(proposal.memo, opts.memo);
-      assert.equal(proposal.authorDetails.name, cosigner.name);
+      assert.equal(authorDetails.name, cosigner.ctx.name);
       assert.equal(proposal.statusCode, Proposal.status.PROGRESS);
     });
 
@@ -308,35 +373,25 @@ describe('Multisig', function() {
       // keep track of which cosigner it is iterating
       // over with j
       for (const [j, cosigner] of Object.entries(toApprove)) {
-        // get the cosigner token
-        const token = await generateToken(hardware, cosigner.path);
-        const wallet = client.wallet(walletId, token.toString('hex'));
+        const {ctx} = cosigner;
+        const wallet = client.wallet(walletId, ctx.token.toString('hex'));
 
-        // response is {tx,paths,scripts,txs}
-        const pmtx = await wallet.getProposalMTX(proposal.id, {
-          paths: true,
-          scripts: true,
-          txs: true
-        });
-
-        const {paths,inputTXs,coins,scripts,mtx} = prepareSignMultisig({
-          pmtx,
+        const {mtx, inputData} = await prepareSignMultisig({
+          pid: proposal.id,
+          wallet: wallet,
+          network: network,
           path: cosigner.path.clone()
         });
 
-        const signatures = await hardware.getSignature(mtx, {
-          paths,
-          inputTXs,
-          coins,
-          scripts,
-          enc: 'hex'
-        });
+        const signatures = await manager.getSignatures(mtx, inputData);
 
         // do not broadcast explicitly, so we can assert on it
-        const shouldBroadcast = false;
+        const broadcast = false;
 
-        const approval = await wallet.approveProposal(
-          proposal.id, signatures, shouldBroadcast);
+        const approval = await wallet.approveProposal(proposal.id, {
+          signatures,
+          broadcast
+        });
 
         // cast j to an integer and when it is the final
         // cosigner, assert that it is approved and otherwise
@@ -346,13 +401,41 @@ describe('Multisig', function() {
         else
           assert.equal(approval.proposal.statusCode, Proposal.status.PROGRESS);
 
-        assert.equal(approval.broadcasted, shouldBroadcast);
+        assert.equal(approval.broadcasted, broadcast);
       }
     });
   }
-
-  it('should close', async () => {
-    await walletNode.close();
-    await fullNode.close();
-  });
 });
+
+/**
+ * We need to gather:
+ *  - accountKey / public key
+ *  - generate token
+ *  - xpub proof
+ * public key and xpub Proof
+ */
+
+async function collectCosignerInfo(manager, cosigner) {
+  const {ctx, path} = cosigner;
+
+  const proofPath = path.clone();
+  proofPath
+    .push(sigUtils.PROOF_INDEX, false)
+    .push(0, false);
+
+  const accountKey = await manager.getPublicKey(path);
+  const token = await generateToken(manager, path);
+
+  ctx.accountKey = accountKey;
+  ctx.token = token;
+
+  const joinMessage = ctx.joinMessage;
+
+  const signature = await manager.signMessage(proofPath, joinMessage);
+
+  ctx.xpubProof = signature;
+}
+
+function now() {
+  return Math.floor(Date.now() / 1000);
+}

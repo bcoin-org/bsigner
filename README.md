@@ -4,11 +4,11 @@ Manage watch only wallets with bcoin
 
 ## Features
 
-- Node.js `Hardware` Class with Ledger Support
-- CLI tooling for end to end work with `bcoin`
-- Pull extended public keys, create watch only wallets/accounts
-- Sign transactions, broadcast to the network
-- Manage multisignature wallets
+- Node.js `Signer` Class with Ledger and Trezor support.
+- CLI tooling for end to end work with `bcoin`.
+- Pull extended public keys, create watch only wallets/accounts.
+- Sign transactions, broadcast to the network.
+- Manage multisignature wallets.
 
 ## Library Usage
 
@@ -16,27 +16,28 @@ Manage watch only wallets with bcoin
 
 ### Exposed Classes/Functions
 
-##### Hardware
-
-A class to manage signing. Currently only supports Hardware devices,
-but will be generalized into an abstract `Signer` in the future.
+##### Signer
+A class to manage multiple devices/vendors and do signing.
 
 ```javascript
 
-const {Hardware, Path} = require('bsigner');
+const {Signer, Path} = require('bsigner');
 
 (async () => {
 
   // create bip44 xpub path
   const path = Path.fromList([44,0,0], true);
 
-  const hardware = Hardware.fromOptions({
-    vendor: 'ledger',    // supports ledger
+  const manager = Signer.fromOptions({
+    vendor: 'ledger',    // enabled vendors, supports ledger and trezor
     network: 'regtest'   // main, testnet, regtest, or simnet
   });
 
-  const hdpubkey = await hardware.getPublicKey(path);
+  await manager.open();
+  // select device with vendor.
+  await manager.selectDevice('ledger');
 
+  const hdpubkey = await manager.getPublicKey(path);
 })().catch(e => {
   console.log(e.stack);
   process.exit(1);
@@ -44,10 +45,8 @@ const {Hardware, Path} = require('bsigner');
 
 ```
 
-The `Hardware` class is an `eventemitter` and emits on 2 topics.
-`connect` and `disconnect`, an `options` object is passed along
-and has the device fingerprint (defined as the bip174 master public
-key fingerprint) and the device vendor. See `examples/events.js`
+The `Signer` class is an `eventemitter` and emits on 4 topics.
+`connect`, `disconnect`, `select`, `deselect`, a `device` object is passed along.
 
 Use in conjunction with [bcoin](https://github.com/bcoin-org/bcoin/)
 to sign transactions using the hardware wallet device.
@@ -56,7 +55,7 @@ to sign transactions using the hardware wallet device.
 ```javascript
 const {WalletClient} = require('bclient');
 const {Newtork} = require('bcoin');
-const {Path, prepareSign, Hardware} = require('bsigner');
+const {Path, prepareSign, Signer} = require('bsigner');
 
 const network = Network.get('regtest');
 
@@ -67,7 +66,7 @@ const client = new WalletClient({
 
 const wallet = client.wallet('mywallet');
 
-const hardware = Hardware.fromOptions({
+const manager = Signer.fromOptions({
   vendor: 'ledger',
   network: 'regtest'
 });
@@ -78,21 +77,18 @@ const path = Path.fromList([44,0,0], true);
 const tx = await wallet.createTX({
   account: 'default',
   rate: 1e3,
-  outputs: [{ value: 1e4, address: REaoV1gcgqDSQCkdZpjFZptGnutGEat4DR }],
+  outputs: [{ value: 1e4, address: 'REaoV1gcgqDSQCkdZpjFZptGnutGEat4DR' }],
   sign: false
 });
 
-const {coins,inputTXs,paths,mtx} = await prepareSign({
+const {mtx, inputData} = await prepareSign({
   tx: tx,
   wallet: walletClient.wallet(walletId),
-  path: path.clone()
+  path: path.clone(),
+  network: network
 });
 
-const signed = await hardware.signTransaction(mtx, {
-  paths,
-  inputTXs,
-  coins
-});
+const signed = await manager.signTransaction(mtx, inputData);
 
 console.log(signed.verify());
 // true
@@ -104,7 +100,7 @@ to manage signing multisignature transactions
 ```javascript
 const {WalletClient} = require('bclient');
 const {Newtork} = require('bcoin');
-const {Path, prepareSignMultisig, Hardware} = require('bsigner');
+const {Path, prepareSignMultisig, Signer} = require('bsigner');
 
 const network = Network.get('regtest');
 
@@ -118,25 +114,14 @@ const wallet = client.wallet('primary');
 const proposalId = 0;
 const path = Path.fromList([44,0,0], true);
 
-const pmtx = await wallet.getProposalMTX(proposalId, {
-  paths: true,
-  scripts: true,
-  txs: true
-});
-
-const {paths,inputTXs,coins,scripts,mtx} = prepareSignMultisig({
-  pmtx,
+const {mtx, inputData} = prepareSignMultisig({
+  proposalId,
   path: path.clone(),
+  wallet: wallet,
+  network: network
 });
 
-const signatures = await hardware.getSignature(mtx, {
-  paths,
-  inputTXs,
-  coins,
-  scripts,
-  enc: 'hex'
-});
-
+const signatures = await manager.getSignature(mtx, inputData);
 const approval = await wallet.approveProposal(proposalId, signatures);
 
 ```
@@ -255,7 +240,7 @@ Use the `--help` flag to see in depth details.
 
 - `-i` - bip44 account index, must specify hardened with either `h` or `'`
 - `-n` - bitcoin network, one of main, testnet, regtest, simnet
-- `-v` - signing vendor, one of ledger or trezor
+- `-v` - signing vendor: `ledger` or `trezor`
 
 Lets start by verifying. Grab the first receive address of the first account.
 This address corresponds to `m/44'/1'/0'/0/0`. Using `jq`, it is possible to
@@ -315,23 +300,9 @@ $ ./bin/sign.js -v ledger -w foo -n regtest --value 10000 --recipient REaoV1gcgq
 
 Docs coming soon
 
-## Notes
-
-Signing transactions with both legacy and segwit
-inputs will not work on ledger and trezor hardware
-devices due to their firmware. It is possible
-to craft such transactions with bcoin, so please
-be careful not to do so.
-
-bcoin is pinned to a specific commit `a2e176d4`
-because it is right before a change in the
-regtest keyprefixes, which will break its compatibility
-with `bmultisig`, since it relies on `bcoin@1.0.2`
-
 ## TODO
 
 - Separate tests so that they can more easily run
-- prepackage `trezor.js` post babelified, so that we do not need to include `babel-runtime` as a dependency.
 
 ## Disclaimer
 

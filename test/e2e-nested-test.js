@@ -4,40 +4,38 @@
 'use strict';
 
 const assert = require('bsert');
-const Logger = require('blgr');
 const {wallet, Network, protocol, FullNode} = require('bcoin');
 const {NodeClient, WalletClient} = require('bclient');
-const {Path, Hardware, prepareSign} = require('../lib/bsigner');
+const {Path, Signer, prepareSign, vendors} = require('../lib/bsigner');
+const {getLogger, getTestVendors} = require('./utils/common');
+const {sleep} = require('../lib/common');
+const {phrase} = require('./utils/key');
 
-/*
- * these tests test for spending from nested
- * addresses
- */
-
-/*
- * file level constants and globals
- */
 const n = 'regtest';
-// set the network globally
-Network.set(n);
 const network = Network.get(n);
 
-const logger = new Logger('debug');
+// set the network globally
+Network.set(n);
+
+const logger = getLogger();
+const enabledVendors = getTestVendors();
 
 let fullNode;
 let nodeClient;
-let hardware;
+let manager;
 let walletClient;
 let primaryWallet;
 
 // path to sign with
-const path = Path.fromList([44,1,10], true);
+const path = Path.fromList([44, 1, 10], true);
 
 const walletId = 'foobarman';
 
 describe('Nested Signing', function() {
   this.timeout(1e7);
 
+  const oldCBMaturity = protocol.consensus.COINBASE_MATURITY;
+  const oldBaseReward = protocol.consensus.BASE_REWARD;
   before(async () => {
     // allow for spending coinbase outputs immediately
     protocol.consensus.COINBASE_MATURITY = 0;
@@ -61,10 +59,17 @@ describe('Nested Signing', function() {
       network: network.type
     });
 
-    hardware = Hardware.fromOptions({
-      vendor: 'ledger',
-      network: network,
-      logger
+    manager = Signer.fromOptions({
+      network,
+      logger,
+      vendor: enabledVendors,
+      [vendors.LEDGER]: {
+        timeout: 0
+      },
+      [vendors.MEMORY]: {
+        // configure default device of memory device manager.
+        device: { phrase }
+      }
     });
 
     fullNode.use(wallet.plugin);
@@ -73,14 +78,27 @@ describe('Nested Signing', function() {
     primaryWallet = walletClient.wallet('primary');
 
     await logger.open();
-    await hardware.initialize();
+    await manager.open();
     await fullNode.ensure();
     await fullNode.open();
+
+    for (const vendor of enabledVendors) {
+      try {
+        const device = await manager.selectDevice(vendor);
+        await device.open();
+      } catch (e) {
+        throw new Error(`Could not select device for ${vendor}.`);
+      }
+    }
   });
 
   after(async () => {
+    protocol.consensus.COINBASE_MATURITY = oldCBMaturity;
+    protocol.consensus.BASE_REWARD = oldBaseReward;
+
+    await logger.close();
+    await manager.close();
     await fullNode.close();
-    hardware.close();
   });
 
   it('should start node and wallet', async () => {
@@ -95,7 +113,7 @@ describe('Nested Signing', function() {
   */
   it('should create new segwit wallet', async () => {
     // get account key
-    const pubkey = await hardware.getPublicKey(path);
+    const pubkey = await manager.getPublicKey(path);
     const accountKey = pubkey.xpubkey(network.type);
 
     const response = await walletClient.createWallet(walletId, {
@@ -120,34 +138,38 @@ describe('Nested Signing', function() {
 
     await nodeClient.execute('generatetoaddress', [toMine, nestedAddress]);
 
+    await sleep(300);
     const walletInfo = await walletClient.getAccount(walletId, 'default');
 
     assert.equal(walletInfo.balance.coin, toMine);
   });
 
-  it('should be able to create a valid spend', async () => {
-    const {receiveAddress} = await walletClient.getAccount(walletId, 'default');
+  for (const vendor of enabledVendors) {
+    it(`should be able to create a valid spend (${vendor})`, async () => {
+      const device = await manager.selectDevice(vendor);
+      await device.open();
 
-    const tx = await walletClient.createTX(walletId, {
-      account: 'default',
-      rate: 1e3,
-      outputs: [{ value: 1e4, address: receiveAddress }],
-      sign: false
+      const {receiveAddress} = await walletClient.getAccount(walletId, 'default');
+
+      const tx = await walletClient.createTX(walletId, {
+        account: 'default',
+        rate: 1e3,
+        outputs: [{ value: 1e4, address: receiveAddress }],
+        sign: false,
+        template: true
+      });
+
+      const {inputData, mtx} = await prepareSign({
+        tx: tx,
+        wallet: walletClient.wallet(walletId),
+        path,
+        network
+      });
+
+      const signed = await manager.signTransaction(mtx, inputData);
+
+      assert.ok(signed.verify());
+      await device.close();
     });
-
-    const {coins,inputTXs,paths,mtx} = await prepareSign({
-      tx: tx,
-      wallet: walletClient.wallet(walletId),
-      path,
-      network
-    });
-
-    const signed = await hardware.signTransaction(mtx, {
-      paths,
-      inputTXs,
-      coins
-    });
-
-    assert.ok(signed.verify());
-  });
+  }
 });

@@ -1,13 +1,39 @@
 'use strict';
 
-const {HDPublicKey,KeyRing} = require('bcoin');
+const path = require('path');
 const assert = require('bsert');
+const Logger = require('blgr');
+const {HDPublicKey, KeyRing, Address} = require('bcoin');
+const {tmpdir} = require('os');
+const {randomBytes} = require('bcrypto/lib/random');
+const {parseVendors} = require('../../lib/common');
+
+const common = exports;
+
+common.getLogger = function getLogger() {
+  const level = process.env.TEST_LOGLEVEL ? process.env.TEST_LOGLEVEL : 'none';
+
+  return new Logger(level);
+};
+
+common.getTestVendors = function getTestVendors() {
+  let testVendors = process.env.TEST_VENDOR ? process.env.TEST_VENDOR : 'any';
+
+  testVendors = testVendors.toUpperCase();
+
+  if (testVendors === 'ANY')
+    return parseVendors(testVendors);
+
+  const enabledVendors = testVendors.split(',');
+
+  return parseVendors(enabledVendors);
+};
 
 /*
  * @param {options}
  * @param {options.hdPublicKey}
  */
-function deriveFromAccountHDPublicKey(options) {
+common.deriveFromAccountHDPublicKey = function deriveFromAccountHDPublicKey(options) {
   // format base58 encoded extended public key
   // network is required for prefix
   const {hdPublicKey,network} = options;
@@ -47,37 +73,42 @@ function deriveFromAccountHDPublicKey(options) {
   }
 
   return result;
-}
+};
 
 /*
  * build the inputs to ledgerApp
  * this also works with p2wpkh as well
+ * NOTE: Does not work for nested p2wpkh.
  */
-function p2pkhSignatureInputs(mtx, wallet, accountPath) {
-  const inputTXs = [];
-  const coins = [];
-  const paths = [];
+common.p2pkhSignatureInputs = function p2pkhSignatureInputs(mtx, wallet, accountPath) {
+  const inputData = [];
 
   for (const input of mtx.inputs) {
+    const data = {};
+
     const prevhash = input.prevout.hash;
     const tx = wallet.getTX(prevhash);
-    inputTXs.push(tx);
-
     const coin = mtx.view.getCoinFor(input);
-    coins.push(coin);
 
+    const address = coin.getAddress();
+    const {branch, index} = wallet.getPath(address.getHash());
     const base = accountPath.clone();
-    const hash = input.getHash(coin);
-    const { branch, index } = wallet.getPath(hash);
-    paths.push(base.push(branch).push(index));
+
+    data.prevTX = tx;
+    data.coin = coin;
+    data.path = base.push(branch).push(index);
+    // This will fail with Nested addresses.
+    data.witness = address.type === Address.types.WITNESS;
+
+    inputData.push(data);
   }
 
-  return {
-    inputTXs,
-    coins,
-    paths
-  };
-}
+  return inputData;
+};
 
-exports.deriveFromAccountHDPublicKey = deriveFromAccountHDPublicKey;
-exports.p2pkhSignatureInputs = p2pkhSignatureInputs;
+common.testdir = function testdir(name) {
+  assert(/^[a-z]+$/.test(name), 'Invalid name');
+
+  const uniq = randomBytes(4).toString('hex');
+  return path.join(tmpdir(), `bcoin-test-${name}-${uniq}`);
+};

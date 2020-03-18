@@ -3,10 +3,15 @@
   "version": "0.5.0",
   "description": "transaction signing support for bcoin",
   "main": "lib/bsigner.js",
+  "browser": {
+    "./lib/internal/usb": "./lib/internal/usb-browser.js",
+    "./lib/internal/custom": "./lib/internal/custom-browser.js"
+  },
   "scripts": {
-    "test": "bmocha -c test/*",
-    "test:trezor": "bmocha -c test/* -g trezor",
-    "test:ledger": "bmocha -c test/* -g ledger",
+    "test": "echo \"\\033[0;33mPlease use test:trezor or test:ledger\nRunning using memory device\\033[0m\" && TEST_VENDOR=memory bmocha -c test/*-test.js",
+    "test:memory": "TEST_VENDOR=memory bmocha -c test/*-test.js",
+    "test:trezor": "TEST_VENDOR=trezor bmocha --allow-multiple -c test/*-test.js",
+    "test:ledger": "TEST_VENDOR=ledger bmocha --allow-multiple -c test/*-test.js",
     "lint": "eslint $(cat .eslintfiles) || exit 0",
     "lint-ci": "eslint $(cat .eslintfiles)",
     "lint-file": "eslint"
@@ -19,22 +24,26 @@
     "nodejs"
   ],
   "author": "Mark Tyneway",
+  "contributors": [
+    "Nodari Chkuaselidze <nodar.chkuaselidze@gmail.com>"
+  ],
   "license": "MIT",
   "dependencies": {
     "bcfg": "^0.1.5",
     "bclient": "^0.1.6",
-    "bcoin": "git+https://github.com/bcoin-org/bcoin.git#a2e176d4",
-    "bcrypto": "3.0.1",
-    "bledger": "git+https://github.com/bcoin-org/bledger.git",
+    "bcoin": "github:bcoin-org/bcoin#75722469",
+    "bcrypto": "^3.1.11",
+    "bledger": "^0.3.2",
     "blgr": "^0.1.5",
-    "bmultisig-client": "git+https://github.com/bcoin-org/bmultisig-client.git",
+    "bmultisig": "2.0.0-beta.1",
     "bmutex": "^0.1.5",
-    "bsert": "0.0.8",
+    "bsert": "^0.0.8",
     "bstring": "^0.3.5",
-    "buffer-map": "0.0.5"
+    "buffer-map": "0.0.5",
+    "busb": "^0.1.1",
+    "btrezor-connect": "https://github.com/nodar-chkuaselidze/btrezor-connect#semver:^8.0.13-extended-1"
   },
   "devDependencies": {
-    "bmocha": "^1.0.1",
-    "bmultisig": "git+https://github.com/bcoin-org/bmultisig.git"
+    "bmocha": "^1.0.1"
   }
 }

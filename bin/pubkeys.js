@@ -8,9 +8,8 @@ const Config = require('bcfg');
 const Logger = require('blgr');
 const assert = require('bsert');
 
-const {Hardware} = require('../src/hardware');
-// const {bip44} = require('../src/common');
-const {Path} = require('../src/path');
+const Signer = require('../lib/signer');
+const {Path} = require('../lib/path');
 
 /*
  * pubkeys.js
@@ -36,6 +35,9 @@ class CLI {
         p: 'httpport'
       }
     });
+
+    this.logger = Logger.global;
+    this.manager = null;
 
     this.config.load({
       argv: true,
@@ -76,14 +78,15 @@ class CLI {
     this.wallet = this.client.wallet(
       this.config.str('wallet'), this.config.str('token'));
 
-    this.hardware = Hardware.fromOptions({
-      vendor: this.config.str('vendor'),
-      retry: this.config.bool('retry', true),
+    const vendor = this.config.str('vendor');
+    this.manager = Signer.fromOptions({
+      logger: this.logger,
       network: network.type,
-      logger: this.logger.context('hardware')
+      vendor: vendor
     });
 
-    await this.hardware.initialize();
+    await this.manager.open();
+    await this.manager.selectDevice(vendor.toUpperCase());
 
     // create output object
     const out = {
@@ -112,7 +115,7 @@ class CLI {
 
     out.path = this.path.toString();
 
-    const hdpubkey = await this.hardware.getPublicKey(this.path);
+    const hdpubkey = await this.manager.getPublicKey(this.path);
 
     if (!hdpubkey)
       throw new Error('problem getting public key');
@@ -224,7 +227,7 @@ class CLI {
   }
 
   async destroy() {
-    await this.hardware.close();
+    await this.manager.close();
   }
 
   // TODO: this could be easier to manage as an iterator

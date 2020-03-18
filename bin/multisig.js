@@ -4,12 +4,12 @@
 
 const Config = require('bcfg');
 const {Network} = require('bcoin');
-const {MultisigClient} = require('bmultisig-client');
+const MultisigClient = require('bmultisig/lib/client');
 const Logger = require('blgr');
 
-const {Path} = require('../src/path');
-const {Hardware} = require('../src/hardware');
-const {prepareSignMultisig,generateToken,guessPath} = require('../src/app');
+const {Path} = require('../lib/path');
+const Signer = require('../lib/signer');
+const {prepareSignMultisig, generateToken, guessPath} = require('../lib/app');
 
 /*
  * Manage Multisig wallets with bcoin and watch only wallets
@@ -33,6 +33,9 @@ class CLI {
       argv: true,
       env: true
     });
+
+    this.logger = Logger.global;
+    this.manager = null;
 
     if (this.config.str('config'))
       this.config.open(this.config.path('config'));
@@ -116,22 +119,22 @@ class CLI {
     /*
      * initialize hardware
      */
-    this.hardware = Hardware.fromOptions({
-      vendor: this.config.str('vendor'),
-      retry: this.config.bool('retry', true),
+    const vendor = this.config.str('vendor');
+    this.manager = Signer.fromOptions({
+      logger: this.logger,
       network: network,
-      logger: this.logger.context('hardware')
+      vendor: vendor
     });
 
-    await this.hardware.initialize();
+    await this.manager.open();
+    await this.manager.selectDevice(vendor.toUpperCase());
 
     /*
      * create multisig wallet
      */
     if (this.config.has('create-wallet')) {
-      const cosignerToken = await generateToken(this.hardware, this.path);
-
-      const hdpubkey = await this.hardware.getPublicKey(this.path);
+      const cosignerToken = await generateToken(this.manager, this.path);
+      const hdpubkey = await this.manager.getPublicKey(this.path);
 
       // token in POST body will not overwrite client token
       const wallet = this.config.str('wallet');
@@ -154,8 +157,8 @@ class CLI {
     }
 
     if (this.config.has('join-wallet')) {
-      const hdpubkey = await this.hardware.getPublicKey(this.path.toList());
-      const cosignerToken = await generateToken(this.hardware, this.path);
+      const hdpubkey = await this.manager.getPublicKey(this.path.toList());
+      const cosignerToken = await generateToken(this.manager, this.path);
 
       const wallet = this.config.str('wallet');
 
@@ -179,7 +182,7 @@ class CLI {
     if (this.config.has('create-proposal')) {
       // const hdpubkey = await this.hardware.getPublicKey(
       // this.path.toString());
-      const cosignerToken = await generateToken(this.hardware, this.path);
+      const cosignerToken = await generateToken(this.manager, this.path);
 
       const wallet = this.client.wallet(
         this.config.str('wallet'), cosignerToken.toString('hex'));
@@ -204,43 +207,26 @@ class CLI {
 
     if (this.config.has('approve-proposal')) {
       const pid = this.config.uint('proposal-id');
-      // response is {tx,paths,scripts,txs}
-      const pmtx = await this.wallet.getProposalMTX(pid, {
-        paths: true,
-        scripts: true,
-        txs: true
-      });
-
-      if (!pmtx)
-        throw new Error('make sure there is a proposal first');
-
-      if (!pmtx.tx)
-        throw new Error('no proposal to approve');
-
       /*
        * if no path explicitly
        * passed, use the guessed path
        */
       if (!this.path)
-        this.path = await guessPath(this.hardware, this.wallet, network);
+        this.path = await guessPath(this.manager, this.wallet, network);
 
-      const {paths,inputTXs,coins,scripts,mtx} = await prepareSignMultisig({
-        pmtx,
+      const {mtx, inputData} = await prepareSignMultisig({
+        pid,
         path: this.path,
+        wallet: this.wallet,
+        network
       });
 
-      const signatures = await this.hardware.getSignature(mtx, {
-        paths,
-        inputTXs,
-        coins,
-        scripts,
-        enc: 'hex'
-      });
+      const signatures = await this.manager.getSignatures(mtx, inputData);
 
       if (!signatures)
         throw new Error('problem signing transaction');
 
-      const cosignerToken = await generateToken(this.hardware, this.path);
+      const cosignerToken = await generateToken(this.manager, this.path);
       const wallet = this.client.wallet(this.config.str('wallet'),
         cosignerToken.toString('hex'));
 
@@ -254,7 +240,7 @@ class CLI {
     }
 
     if (this.config.str('reject-proposal')) {
-      const cosignerToken = await generateToken(this.hardware, this.path);
+      const cosignerToken = await generateToken(this.manager, this.path);
 
       const wallet = this.client.wallet(this.config.str('wallet'),
         cosignerToken.toString('hex'));
@@ -268,7 +254,7 @@ class CLI {
   }
 
   async destroy() {
-    await this.hardware.close();
+    await this.manager.close();
   }
 
   /*
