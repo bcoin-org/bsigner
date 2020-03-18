@@ -4,7 +4,7 @@ Manage watch only wallets with bcoin
 
 ## Features
 
-- Node.js `DeviceManager` Class with Ledger and Trezor support.
+- Node.js `Signer` Class with Ledger and Trezor support.
 - CLI tooling for end to end work with `bcoin`.
 - Pull extended public keys, create watch only wallets/accounts.
 - Sign transactions, broadcast to the network.
@@ -16,19 +16,19 @@ Manage watch only wallets with bcoin
 
 ### Exposed Classes/Functions
 
-##### DeviceManager
+##### Signer
 A class to manage multiple devices/vendors and do signing.
 
 ```javascript
 
-const {DeviceManager, Path} = require('bsigner');
+const {Signer, Path} = require('bsigner');
 
 (async () => {
 
   // create bip44 xpub path
   const path = Path.fromList([44,0,0], true);
 
-  const manager = DeviceManager.fromOptions({
+  const manager = Signer.fromOptions({
     vendor: 'ledger',    // enabled vendors, supports ledger and trezor
     network: 'regtest'   // main, testnet, regtest, or simnet
   });
@@ -45,7 +45,7 @@ const {DeviceManager, Path} = require('bsigner');
 
 ```
 
-The `DeviceManager` class is an `eventemitter` and emits on 4 topics.
+The `Signer` class is an `eventemitter` and emits on 4 topics.
 `connect`, `disconnect`, `select`, `deselect`, a `device` object is passed along.
 
 Use in conjunction with [bcoin](https://github.com/bcoin-org/bcoin/)
@@ -55,7 +55,7 @@ to sign transactions using the hardware wallet device.
 ```javascript
 const {WalletClient} = require('bclient');
 const {Newtork} = require('bcoin');
-const {Path, prepareSign, DeviceManager} = require('bsigner');
+const {Path, prepareSign, Signer} = require('bsigner');
 
 const network = Network.get('regtest');
 
@@ -66,7 +66,7 @@ const client = new WalletClient({
 
 const wallet = client.wallet('mywallet');
 
-const manager = DeviceManager.fromOptions({
+const manager = Signer.fromOptions({
   vendor: 'ledger',
   network: 'regtest'
 });
@@ -100,7 +100,7 @@ to manage signing multisignature transactions
 ```javascript
 const {WalletClient} = require('bclient');
 const {Newtork} = require('bcoin');
-const {Path, prepareSignMultisig, DeviceManager} = require('bsigner');
+const {Path, prepareSignMultisig, Signer} = require('bsigner');
 
 const network = Network.get('regtest');
 
