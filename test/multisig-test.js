@@ -7,7 +7,7 @@ const assert = require('bsert');
 const {Path, Signer, generateToken, prepareSignMultisig, vendors} =
   require('../lib/bsigner');
 const {wallet, Network, protocol, FullNode} = require('bcoin');
-const {NodeClient} = require('bclient');
+const {NodeClient} = require('bcoin/lib/client');
 const bmultisig = require('bmultisig/lib/bmultisig');
 const Proposal = require('bmultisig/lib/primitives/proposal');
 const MultisigClient = require('bmultisig/lib/client');

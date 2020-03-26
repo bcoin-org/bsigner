@@ -5,7 +5,7 @@
 
 const assert = require('bsert');
 const {wallet, Network, protocol, FullNode} = require('bcoin');
-const {NodeClient, WalletClient} = require('bclient');
+const {NodeClient, WalletClient} = require('bcoin/lib/client');
 const {Path, Signer, prepareSign, vendors} = require('../lib/bsigner');
 const {getLogger, getTestVendors} = require('./utils/common');
 const {sleep} = require('../lib/common');
