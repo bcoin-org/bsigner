@@ -29,21 +29,23 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "bcfg": "^0.1.5",
-    "bclient": "^0.1.6",
-    "bcoin": "github:bcoin-org/bcoin#75722469",
-    "bcrypto": "^3.1.11",
-    "bledger": "^0.3.2",
-    "blgr": "^0.1.5",
-    "bmultisig": "2.0.0-beta.1",
-    "bmutex": "^0.1.5",
-    "bsert": "^0.0.8",
-    "bstring": "^0.3.5",
-    "buffer-map": "0.0.5",
-    "busb": "^0.1.1",
-    "btrezor-connect": "https://github.com/nodar-chkuaselidze/btrezor-connect#semver:^8.0.13-extended-1"
+    "nan": "git+https://github.com/braydonf/nan.git#semver:^2.14.0",
+    "bcfg": "git+https://github.com/bcoin-org/bcfg#semver:^0.1.5",
+    "bcoin": "git+https://github.com/bcoin-org/bcoin#semver:^2.0.0",
+    "bufio": "git+https://github.com/bcoin-org/bufio#semver:^1.0.6",
+    "bcrypto": "git+https://github.com/bcoin-org/bcrypto#semver:~5.0.4",
+    "bledger": "git+https://github.com/bcoin-org/bledger#semver:~0.4.0",
+    "blgr": "git+https://github.com/bcoin-org/blgr#semver:^0.1.5",
+    "bmultisig": "git+https://github.com/bcoin-org/bmultisig#semver:^2.0.0-beta.2",
+    "bmutex": "git+https://github.com/bcoin-org/bmutex#semver:^0.1.5",
+    "bsert": "git+https://github.com/chjj/bsert#semver:~0.0.10",
+    "buffer-map": "git+https://github.com/chjj/buffer-map#semver:~0.0.7",
+    "busb": "git+https://github.com/nodar-chkuaselidze/busb#semver:^1.0.0-beta.0",
+    "btrezor-connect": "git+https://github.com/nodar-chkuaselidze/btrezor-connect#semver:^8.0.13-extended-1",
+    "loady": "git+https://github.com/chjj/loady#semver:~0.0.1"
   },
   "devDependencies": {
-    "bmocha": "^1.0.1"
+    "bmocha": "git+https://github.com/bcoin-org/bmocha#semver:^2.1.3",
+    "bfilter": "git+https://github.com/bcoin-org/bfilter#semver:^2.1.0"
   }
 }
