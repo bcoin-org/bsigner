@@ -13,7 +13,7 @@ const Signer = require('../lib/signer');
 
 class CLI {
   constructor() {
-    this.config = new Config('hardwarelib', {
+    this.config = new Config('bsigner', {
       alias: {
         n: 'network',
         v: 'vendor',
@@ -65,7 +65,9 @@ class CLI {
     });
 
     await this.manager.open();
-    await this.manager.selectDevice(vendor.toUpperCase());
+    const device = await this.manager.selectDevice(vendor.toUpperCase());
+
+    await device.open();
 
     /*
      * TODO: way to specify arbitrary

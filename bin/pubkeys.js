@@ -3,7 +3,7 @@
 'use strict';
 
 const {Network,KeyRing} = require('bcoin');
-const {WalletClient} = require('bclient');
+const WalletClient = require('bcoin/lib/client/wallet');
 const Config = require('bcfg');
 const Logger = require('blgr');
 const assert = require('bsert');
@@ -22,7 +22,7 @@ const {Path} = require('../lib/path');
 
 class CLI {
   constructor() {
-    this.config = new Config('hardwarelib', {
+    this.config = new Config('bsigner', {
       alias: {
         i: 'index',
         n: 'network',
@@ -86,7 +86,9 @@ class CLI {
     });
 
     await this.manager.open();
-    await this.manager.selectDevice(vendor.toUpperCase());
+    const device = await this.manager.selectDevice(vendor.toUpperCase());
+
+    await device.open();
 
     // create output object
     const out = {
